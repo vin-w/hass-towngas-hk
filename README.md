@@ -34,11 +34,11 @@ Copy `custom_components/towngas_hk/` to your HA `config/custom_components/` fold
 1. **Settings → Devices & Services → Add Integration**
 2. Search **Hong Kong Towngas**
 3. Enter your Towngas eService username and password
-4. Select your account (if multiple accounts exist)
+2. Select your account (if multiple accounts exist). Each entry will be titled `Towngas HK <account_number>`.
 
 ## Sensors
 
-Each configured Towngas account is added as a **device** with the following entities:
+Each configured Towngas account is added as a **device** (named `Towngas HK Account <number>`) with the following entities:
 
 | Entity | Type | Unit | Description |
 |--------|------|------|-------------|
@@ -50,8 +50,8 @@ Each configured Towngas account is added as a **device** with the following enti
 | `sensor.consumption_month` | Sensor | — | Month label for the current consumption |
 | `sensor.current_month_code` | Sensor | — | Machine-friendly month code for current month (`YYYY-MM`) |
 | `sensor.next_month_code` | Sensor | — | Machine-friendly month code for next month (`YYYY-MM`) |
-| `binary_sensor.current_is_estimate` | Binary Sensor | — | `on` if the current month value is estimated |
-| `binary_sensor.next_is_estimate` | Binary Sensor | — | `on` if the next month value is estimated |
+| `binary_sensor.current_consumption_is_estimate` | Binary Sensor | — | `on` if the current month value is estimated |
+| `binary_sensor.next_consumption_is_estimate` | Binary Sensor | — | `on` if the next month value is estimated |
 | `sensor.current_balance` | Sensor | HKD | Current account balance |
 | `sensor.bill_amount_due` | Sensor | HKD | Latest bill amount due |
 | `sensor.bill_due_date` | Sensor | Date | Bill payment due date |

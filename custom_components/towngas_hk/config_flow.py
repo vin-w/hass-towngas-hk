@@ -165,7 +165,7 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _create_entry(self, account_no: str) -> FlowResult:
         """Create the config entry."""
         return self.async_create_entry(
-            title=f"Towngas {account_no}",
+            title=f"Towngas HK {account_no}",
             data={
                 CONF_USERNAME: self._username,
                 CONF_PASSWORD: self._password,

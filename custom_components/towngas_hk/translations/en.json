@@ -51,8 +51,8 @@
     },
     "binary_sensor": {
       "overdue_bill": { "name": "Overdue Bill" },
-      "current_is_estimate": { "name": "Current Month Consumption Is Estimated" },
-      "next_is_estimate": { "name": "Next Month Consumption Is Estimated" }
+      "current_consumption_is_estimate": { "name": "Current Month Consumption Is Estimated" },
+      "next_consumption_is_estimate": { "name": "Next Month Consumption Is Estimated" }
     }
   }
 }

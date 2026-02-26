@@ -107,7 +107,7 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"Towngas {account_no}",
+            name=f"Towngas HK {account_no}",
             update_interval=datetime.timedelta(hours=SCAN_INTERVAL_HOURS),
         )
         self._session = session
@@ -120,7 +120,8 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         """DeviceInfo shared by all entities for this account."""
         return DeviceInfo(
             identifiers={(DOMAIN, self.account_no)},
-            name=f"Towngas Account {self.account_no}",
+            # match the config entry naming convention
+            name=f"Towngas HK Account {self.account_no}",
             manufacturer="Unofficial",
             model="eService",
             entry_type="service",

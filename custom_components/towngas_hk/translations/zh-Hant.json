@@ -51,8 +51,8 @@
     },
     "binary_sensor": {
       "overdue_bill": { "name": "逾期未繳" },
-      "current_is_estimate": { "name": "本月使用量為估計值" },
-      "next_is_estimate": { "name": "下月使用量為估計值" }
+      "current_consumption_is_estimate": { "name": "本月使用量為估計值" },
+      "next_consumption_is_estimate": { "name": "下月使用量為估計值" }
     }
   }
 }

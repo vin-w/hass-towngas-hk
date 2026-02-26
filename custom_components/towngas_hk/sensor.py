@@ -6,7 +6,6 @@ import datetime
 import logging
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -36,27 +35,10 @@ async def async_setup_entry(
         TownGasBalanceSensor(coordinator),
         TownGasBillAmountSensor(coordinator),
         TownGasBillDateSensor(coordinator),
-        TownGasCurrentEstimateBinary(coordinator),
-        TownGasNextEstimateBinary(coordinator),
     ])
 
 
 class TownGasBaseSensor(CoordinatorEntity[TownGasCoordinator], SensorEntity):
-    _attr_has_entity_name = True
-
-    def __init__(self, coordinator: TownGasCoordinator) -> None:
-        super().__init__(coordinator)
-
-    @property
-    def device_info(self):
-        return self.coordinator.device_info
-
-    @property
-    def _data(self) -> TownGasData:
-        return self.coordinator.data
-
-
-class TownGasBaseBinary(CoordinatorEntity[TownGasCoordinator], BinarySensorEntity):
     _attr_has_entity_name = True
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
@@ -130,7 +112,14 @@ class TownGasCurrentConsumptionUnitSensor(TownGasCurrentConsumptionSensor):
     _attr_translation_key = "current_month_gas_consumption_unit"
     _attr_native_unit_of_measurement = "Unit"
 
+    def __init__(self, coordinator: TownGasCoordinator) -> None:
+        super().__init__(coordinator)
+        # avoid duplicate unique_id with the MJ sensor
+        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_current_consumption_unit"
+
+    @property
     def native_value(self) -> int | None:  # type: ignore[override]
+        """Return the consumption converted to 48‑MJ units."""
         val = super().native_value
         return int(val / 48) if val is not None else None
 
@@ -139,7 +128,13 @@ class TownGasNextConsumptionUnitSensor(TownGasNextConsumptionSensor):
     _attr_translation_key = "next_month_gas_consumption_unit"
     _attr_native_unit_of_measurement = "Unit"
 
+    def __init__(self, coordinator: TownGasCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_next_consumption_unit"
+
+    @property
     def native_value(self) -> int | None:  # type: ignore[override]
+        """Return the predicted consumption converted to 48‑MJ units."""
         val = super().native_value
         return int(val / 48) if val is not None else None
 
@@ -257,27 +252,3 @@ class TownGasNextMonthCodeSensor(TownGasBaseSensor):
             return None
 
 
-class TownGasCurrentEstimateBinary(TownGasBaseBinary):
-    _attr_translation_key = "current_is_estimate"
-    _attr_icon = "mdi:help-circle-outline"
-
-    def __init__(self, coordinator: TownGasCoordinator) -> None:
-        super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_current_is_estimate"
-
-    @property
-    def is_on(self) -> bool:
-        return bool(self._data.is_current_month_estimate)
-
-
-class TownGasNextEstimateBinary(TownGasBaseBinary):
-    _attr_translation_key = "next_is_estimate"
-    _attr_icon = "mdi:help-circle-outline"
-
-    def __init__(self, coordinator: TownGasCoordinator) -> None:
-        super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_next_is_estimate"
-
-    @property
-    def is_on(self) -> bool:
-        return bool(self._data.is_next_month_estimate)

@@ -49,12 +49,23 @@
       },
       "bill_due_date": {
         "name": "Bill Due Date"
-      }
+      },
+      "account_no": {
+        "name": "Account Number"
+      },
+      "current_month_gas_consumption": {"name": "Current Month Gas Consumption"},
+      "next_month_gas_consumption": {"name": "Next Month Gas Consumption"},
+      "current_month_gas_consumption_unit": {"name": "Current Month Gas Consumption (unit)"},
+      "next_month_gas_consumption_unit": {"name": "Next Month Gas Consumption (unit)"},
+      "current_month_code": {"name": "Current Month Code"},
+      "next_month_code": {"name": "Next Month Code"}
     },
     "binary_sensor": {
       "overdue_bill": {
         "name": "Overdue Bill"
-      }
+      },
+      "current_consumption_is_estimate": {"name": "Current Month Consumption Is Estimated"},
+      "next_consumption_is_estimate": {"name": "Next Month Consumption Is Estimated"}
     }
   }
 }

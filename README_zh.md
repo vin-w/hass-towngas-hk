@@ -50,8 +50,8 @@
 | `sensor.consumption_month` | 感測器 | — | 當前消耗的月份標籤 |
 | `sensor.current_month_code` | 感測器 | — | 機器可讀的本月代碼（`YYYY-MM`） |
 | `sensor.next_month_code` | 感測器 | — | 機器可讀的下月代碼（`YYYY-MM`） |
-| `binary_sensor.current_is_estimate` | 二元感測器 | — | 若當月數值為估計則為 `on` |
-| `binary_sensor.next_is_estimate` | 二元感測器 | — | 若下月數值為估計則為 `on` |
+| `binary_sensor.current_consumption_is_estimate` | 二元感測器 | — | 若當月數值為估計則為 `on` |
+| `binary_sensor.next_consumption_is_estimate` | 二元感測器 | — | 若下月數值為估計則為 `on` |
 | `sensor.current_balance` | 感測器 | HKD | 帳戶結餘 |
 | `sensor.bill_amount_due` | 感測器 | HKD | 最近一期賬單金額 |
 | `sensor.bill_due_date` | 感測器 | 日期 | 賬單到期日 |
