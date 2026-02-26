@@ -1,4 +1,4 @@
-# 香港中華煤氣 for Home Assistant ⛽
+# 香港中華煤氣 for Home Assistant 🔥
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration) [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-support-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/vin_w)
 
@@ -105,6 +105,26 @@ cards:
 前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增sensor.current_month_gas_consumption。
 
 ![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
+
+## 自動化藍圖 🔁
+
+已內置一個方便使用的自動化藍圖，當你的
+煤氣賬單逾期時會發出提醒。你可以使用下面的按鈕
+或以下網址直接匯入藍圖：
+
+[![匯入藍圖](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?url=https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_zh-Hant.yaml)
+
+[https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_zh-Hant.yaml](https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_zh-Hant.yaml)
+
+匯入後，請根據此藍圖建立一個自動化，並設定以下輸入：
+
+1. **逾期賬單感測器** – 為你的煤氣賬戶選擇 `binary_sensor.overdue_bill`。
+2. **通知服務** – 選擇一個通知服務（例如
+   `notify.mobile_app_yourphone`）。
+
+當感測器狀態變為 **on** 時，建立好的自動化會被觸發，
+向所選的通知目標發送標題及訊息。
+
 
 ## 需求 📦
 

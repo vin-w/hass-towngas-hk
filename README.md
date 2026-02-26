@@ -1,4 +1,4 @@
-# Hong Kong Towngas for Home Assistant ⛽
+# Hong Kong Towngas for Home Assistant 🔥
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration) [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-support-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/vin_w)
 
@@ -106,6 +106,28 @@ cards:
 Go to **Settings → Dashboards → Energy** and add the sensor.current_month_gas_consumption (in MJ) under **Gas consumption**.
 
 ![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
+
+## Automation Blueprint 🔁
+
+A convenient automation blueprint is included to alert you when your
+Towngas bill becomes overdue. You can import it directly using the
+button below or by using the URL:
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?url=https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_en.yaml)
+
+[https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_en.yaml](https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_en.yaml)
+
+Once imported, create an automation from the blueprint and configure the
+inputs:
+
+1. **Overdue Bill Sensor** – select `binary_sensor.overdue_bill` for your
+   Towngas account.
+2. **Notification Service** – choose a notify service (e.g.
+   `notify.mobile_app_yourphone`).
+
+The built automation will fire when the sensor turns **on**, sending a
+title/message to the chosen notify target.
+
 
 ## Requirements 📦
 
