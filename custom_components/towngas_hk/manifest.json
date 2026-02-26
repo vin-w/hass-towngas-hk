@@ -1,0 +1,12 @@
+{
+  "domain": "towngas_hk",
+  "name": "Hong Kong Towngas",
+  "version": "1.0.0",
+  "config_flow": true,
+  "resources": ["icons/icon.png"],
+  "documentation": "https://github.com/vin-w/hass-towngas-hk",
+  "issue_tracker": "https://github.com/vin-w/hass-towngas-hk/issues",
+  "requirements": ["beautifulsoup4==4.12.3"],
+  "iot_class": "cloud_polling",
+  "codeowners": ["@vin-w"]
+}

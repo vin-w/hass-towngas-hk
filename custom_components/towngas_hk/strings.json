@@ -1,0 +1,51 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Hong Kong Towngas",
+        "description": "Enter your Towngas eService login credentials.",
+        "data": {
+          "username": "Username (Login ID)",
+          "password": "Password"
+        }
+      },
+      "account": {
+        "title": "Select Account",
+        "description": "Multiple accounts found. Please select one.",
+        "data": {
+          "account_no": "Account Number"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Towngas eService.",
+      "invalid_auth": "Invalid username or password.",
+      "cannot_get_token": "Could not retrieve security token from Towngas.",
+      "unknown": "Unexpected error. Check Home Assistant logs."
+    },
+    "abort": {
+      "already_configured": "This Towngas account is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gas_consumption": {
+        "name": "Gas Consumption"
+      },
+      "current_balance": {
+        "name": "Current Balance"
+      },
+      "bill_amount_due": {
+        "name": "Bill Amount Due"
+      },
+      "bill_due_date": {
+        "name": "Bill Due Date"
+      }
+    },
+    "binary_sensor": {
+      "overdue_bill": {
+        "name": "Overdue Bill"
+      }
+    }
+  }
+}

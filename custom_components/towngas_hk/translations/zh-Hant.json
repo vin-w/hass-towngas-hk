@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "香港中華煤氣",
+        "description": "請輸入您的中華煤氣 eService 登入憑證。",
+        "data": {
+          "username": "使用者名稱 (登入 ID)",
+          "password": "密碼"
+        }
+      },
+      "account": {
+        "title": "選擇帳戶",
+        "description": "找到多個帳戶。請選擇一個。",
+        "data": {
+          "account_no": "帳戶號碼"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "無法連線至中華煤氣 eService。",
+      "invalid_auth": "無效的使用者名稱或密碼。",
+      "cannot_get_token": "無法從中華煤氣取得安全權杖。",
+      "unknown": "發生未預期的錯誤。請檢查 Home Assistant 日誌。"
+    },
+    "abort": {
+      "already_configured": "此中華煤氣帳戶已設定。"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gas_consumption": { "name": "煤氣消耗量" },
+      "current_balance": { "name": "帳戶結餘" },
+      "bill_amount_due": { "name": "最近一期賬單金額" },
+      "bill_due_date": { "name": "賬單到期日" }
+    },
+    "binary_sensor": {
+      "overdue_bill": { "name": "逾期未繳" }
+    }
+  }
+}
