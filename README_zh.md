@@ -6,6 +6,8 @@
 
 香港中華煤氣 Home Assistant 自訂整合，用於透過 eService 門戶監控您的煤氣消耗量和帳單。
 
+![中華煤氣卡片範例](docs/images/towngas-card.png)
+
 ## 特色 ⭐
 
 - 🔥 現月與次月煤氣消耗量（MJ，實測或估計）
@@ -74,9 +76,35 @@
 | `ibill` | 是否已登記電子賬單 |
 | `account_status` | 帳戶狀態（`A` = 有效） |
 
+## 儀表板範例 🖥️
+
+您可以在任何儀表板中新增簡單的中華煤氣卡片堆疊：
+
+```yaml
+type: vertical-stack
+cards:
+  - type: history-graph
+    title: 煤氣使用量（月度）
+    entities:
+      - entity: sensor.towngas_current_month_gas_consumption
+        name: 當月
+      - entity: sensor.towngas_next_month_gas_consumption
+        name: 下月
+    hours_to_show: 720
+  - type: entities
+    state_color: true
+    entities:
+      - entity: binary_sensor.towngas_overdue_bill
+        name: 逾期帳單
+      - entity: sensor.towngas_bill_due_date
+      - entity: sensor.towngas_bill_amount_due
+```
+
 ## 能源儀表板 ⚡
 
-前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增當月感測器。預測感測器亦可用於預覽。
+前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增sensor.current_month_gas_consumption。
+
+![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
 
 ## 需求 📦
 

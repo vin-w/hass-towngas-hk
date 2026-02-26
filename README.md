@@ -6,6 +6,8 @@ English | [繁體中文](./README_zh.md)
 
 A Home Assistant custom integration for monitoring your [Hong Kong Towngas](https://eservice.towngas.com) gas consumption and billing via the eService portal.
 
+![Towngas card example](docs/images/towngas-card.png)
+
 ## Features ⭐
 
 - 🔥 Current and Next Month gas consumption in MJ (actual or estimated)
@@ -75,9 +77,35 @@ Account number is available as `sensor.account_no`.
 | `ibill` | Whether iBill (e-statement) is enrolled |
 | `account_status` | Account status (`A` = Active) |
 
+## Dashboard example 🖥️
+
+You can add a simple Towngas card stack to any dashboard:
+
+```yaml
+type: vertical-stack
+cards:
+  - type: history-graph
+    title: Towngas Usage (Monthly)
+    entities:
+      - entity: sensor.towngas_current_month_gas_consumption
+        name: Current month
+      - entity: sensor.towngas_next_month_gas_consumption
+        name: Next month
+    hours_to_show: 720
+  - type: entities
+    state_color: true
+    entities:
+      - entity: binary_sensor.towngas_overdue_bill
+        name: Overdue bill
+      - entity: sensor.towngas_bill_due_date
+      - entity: sensor.towngas_bill_amount_due
+```
+
 ## Energy Dashboard ⚡
 
-Go to **Settings → Dashboards → Energy** and add the current-month sensor under **Gas consumption**.  The next-month sensor can also be used for forecasts.
+Go to **Settings → Dashboards → Energy** and add the sensor.current_month_gas_consumption (in MJ) under **Gas consumption**.
+
+![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
 
 ## Requirements 📦
 
