@@ -15,6 +15,14 @@
         "data": {
           "account_no": "Account Number"
         }
+      },
+      "reauth": {
+        "title": "Re-authenticate Towngas Account",
+        "description": "Your Towngas credentials have expired. Please enter them again.",
+        "data": {
+          "username": "Username (Login ID)",
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -24,28 +32,27 @@
       "unknown": "Unexpected error. Check Home Assistant logs."
     },
     "abort": {
-      "already_configured": "This Towngas account is already configured."
+      "already_configured": "This Towngas account is already configured.",
+      "reauth_successful": "Re-authentication was successful."
     }
   },
   "entity": {
     "sensor": {
-      "gas_consumption": {
-        "name": "Gas Consumption"
-      },
-      "current_balance": {
-        "name": "Current Balance"
-      },
-      "bill_amount_due": {
-        "name": "Bill Amount Due"
-      },
-      "bill_due_date": {
-        "name": "Bill Due Date"
-      }
+      "current_month_gas_consumption": { "name": "Current Month Gas Consumption" },
+      "next_month_gas_consumption": { "name": "Next Month Gas Consumption" },
+      "account_no": { "name": "Account Number" },
+      "current_month_code": { "name": "Current Month Code" },
+      "next_month_code": { "name": "Next Month Code" },
+      "current_month_gas_consumption_unit": { "name": "Current Month Gas Consumption (unit)" },
+      "next_month_gas_consumption_unit": { "name": "Next Month Gas Consumption (unit)" },
+      "current_balance": { "name": "Current Balance" },
+      "bill_amount_due": { "name": "Bill Amount Due" },
+      "bill_due_date": { "name": "Bill Due Date" }
     },
     "binary_sensor": {
-      "overdue_bill": {
-        "name": "Overdue Bill"
-      }
+      "overdue_bill": { "name": "Overdue Bill" },
+      "current_is_estimate": { "name": "Current Month Consumption Is Estimated" },
+      "next_is_estimate": { "name": "Next Month Consumption Is Estimated" }
     }
   }
 }

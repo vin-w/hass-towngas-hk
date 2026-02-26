@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_ACCOUNT_NO
-from .sensor import TownGasCoordinator, _device_info
+from .const import DOMAIN
+from .coordinator import TownGasCoordinator
 
 
 async def async_setup_entry(
@@ -18,44 +17,27 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Towngas binary sensors from a config entry."""
-    data = config_entry.data
-    session = async_get_clientsession(hass)
-    account_no = data[CONF_ACCOUNT_NO]
-
-    coordinator = TownGasCoordinator(
-        session,
-        data[CONF_USERNAME],
-        data[CONF_PASSWORD],
-        account_no,
-    )
-
-    async_add_entities(
-        [TownGasOverdueSensor(coordinator, account_no)],
-        update_before_add=True,
-    )
+    """Set up Towngas binary sensors using the shared coordinator."""
+    coordinator: TownGasCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    async_add_entities([TownGasOverdueSensor(coordinator)])
 
 
-class TownGasOverdueSensor(BinarySensorEntity):
-    """Binary sensor: True when account has an overdue bill."""
+class TownGasOverdueSensor(CoordinatorEntity[TownGasCoordinator], BinarySensorEntity):
+    """Binary sensor: on when the account has an overdue bill."""
 
     _attr_has_entity_name = True
     _attr_name = "Overdue Bill"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_icon = "mdi:alert-circle"
 
-    def __init__(self, coordinator: TownGasCoordinator, account_no: str) -> None:
-        self._coordinator = coordinator
-        self._account_no = account_no
-        self._attr_unique_id = f"towngas_hk_{account_no}_overdue"
+    def __init__(self, coordinator: TownGasCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_overdue"
 
     @property
-    def device_info(self) -> dict:
-        return _device_info(self._account_no)
+    def device_info(self):
+        return self.coordinator.device_info
 
     @property
     def is_on(self) -> bool:
-        return self._coordinator.is_overdue
-
-    async def async_update(self) -> None:
-        await self._coordinator.async_update()
+        return self.coordinator.data.is_overdue if self.coordinator.data else False

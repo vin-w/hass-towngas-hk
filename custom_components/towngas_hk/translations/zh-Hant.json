@@ -15,6 +15,14 @@
         "data": {
           "account_no": "帳戶號碼"
         }
+      },
+      "reauth": {
+        "title": "重新驗證中華煤氣帳戶",
+        "description": "您的中華煤氣登入資料已到期，請重新輸入。",
+        "data": {
+          "username": "使用者名稱 (登入 ID)",
+          "password": "密碼"
+        }
       }
     },
     "error": {
@@ -24,18 +32,27 @@
       "unknown": "發生未預期的錯誤。請檢查 Home Assistant 日誌。"
     },
     "abort": {
-      "already_configured": "此中華煤氣帳戶已設定。"
+      "already_configured": "此中華煤氣帳戶已設定。",
+      "reauth_successful": "重新驗證成功。"
     }
   },
   "entity": {
     "sensor": {
-      "gas_consumption": { "name": "煤氣消耗量" },
+      "current_month_gas_consumption": { "name": "本月煤氣使用量" },
+      "next_month_gas_consumption": { "name": "下月煤氣使用量" },
+      "account_no": { "name": "帳戶號碼" },
+      "current_month_code": { "name": "本月代碼" },
+      "next_month_code": { "name": "下月代碼" },
+      "current_month_gas_consumption_unit": { "name": "本月煤氣使用量（單位）" },
+      "next_month_gas_consumption_unit": { "name": "下月煤氣使用量（單位）" },
       "current_balance": { "name": "帳戶結餘" },
       "bill_amount_due": { "name": "最近一期賬單金額" },
       "bill_due_date": { "name": "賬單到期日" }
     },
     "binary_sensor": {
-      "overdue_bill": { "name": "逾期未繳" }
+      "overdue_bill": { "name": "逾期未繳" },
+      "current_is_estimate": { "name": "本月使用量為估計值" },
+      "next_is_estimate": { "name": "下月使用量為估計值" }
     }
   }
 }

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 import aiohttp
@@ -11,7 +10,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     ACCOUNT_API,
@@ -26,25 +25,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _extract_csrf_token(html: str) -> str | None:
-    """Extract CSRF token from login page HTML."""
-    for meta_name in ("csrf-token", "RequestVerificationToken", "_csrf"):
-        match = re.search(
-            rf'<meta[^>]+name=["\']{re.escape(meta_name)}["\'][^>]+content=["\'](CfDJ8[^"\']+)',
-            html,
-            re.IGNORECASE,
-        )
-        if match:
-            return match.group(1)
-        match = re.search(
-            rf'<meta[^>]+content=["\'](CfDJ8[^"\']+)["\'][^>]+name=["\']{re.escape(meta_name)}',
-            html,
-            re.IGNORECASE,
-        )
-        if match:
-            return match.group(1)
-    match = re.search(r'["\' ](CfDJ8[A-Za-z0-9_\-]{60,})["\']', html)
-    return match.group(1) if match else None
+from .coordinator import extract_csrf_token as _extract_csrf_token  # noqa: E402 (imported for use below)
 
 
 async def _do_login(
@@ -134,7 +115,7 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            session = async_create_clientsession(self.hass)
+            session = async_get_clientsession(self.hass)
 
             try:
                 self._csrf_token = await _do_login(
@@ -195,5 +176,55 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Re-authenticate when credentials expire."""
-        return await self.async_step_user(user_input)
+        """Handle re-authentication when credentials expire."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reauth",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(CONF_USERNAME): str,
+                        vol.Required(CONF_PASSWORD): str,
+                    }
+                ),
+            )
+
+        errors: dict[str, str] = {}
+        session = async_get_clientsession(self.hass)
+        try:
+            csrf_token = await _do_login(
+                session,
+                user_input[CONF_USERNAME].strip(),
+                user_input[CONF_PASSWORD],
+            )
+            _ = await _get_accounts(session, csrf_token)
+        except ValueError as err:
+            errors["base"] = str(err)
+        except aiohttp.ClientResponseError:
+            errors["base"] = "cannot_connect"
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Unexpected error during Towngas re-auth")
+            errors["base"] = "unknown"
+
+        if errors:
+            return self.async_show_form(
+                step_id="reauth",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(CONF_USERNAME): str,
+                        vol.Required(CONF_PASSWORD): str,
+                    }
+                ),
+                errors=errors,
+            )
+
+        entry = self._get_reauth_entry()
+        self.hass.config_entries.async_update_entry(
+            entry,
+            data={
+                **entry.data,
+                CONF_USERNAME: user_input[CONF_USERNAME].strip(),
+                CONF_PASSWORD: user_input[CONF_PASSWORD],
+            },
+        )
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        return self.async_abort(reason="reauth_successful")
