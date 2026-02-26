@@ -13,7 +13,7 @@ blueprint:
       name: 通知服務
       description: 例如 notify.mobile_app_yourphone
       selector:
-        action:
+        text:
 
 triggers:
   - trigger: state
