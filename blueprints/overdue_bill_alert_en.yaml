@@ -1,0 +1,30 @@
+blueprint:
+  name: Towngas Overdue Bill Alert 🔥🔔
+  description: Send a mobile notification when the Towngas bill is overdue.
+  domain: automation
+  input:
+    overdue_bill_sensor:
+      name: Overdue Bill Sensor
+      description: The binary_sensor.overdue_bill entity from your Towngas device.
+      selector:
+        entity:
+          domain: binary_sensor
+    notify_target:
+      name: Notification Service
+      description: e.g. notify.mobile_app_yourphone
+      selector:
+        action:
+
+triggers:
+  - trigger: state
+    entity_id: !input overdue_bill_sensor
+    to: "on"
+
+actions:
+  - action: !input notify_target
+    data:
+      title: 🔥 Towngas Bill Overdue Alert
+      message: >-
+        🔔 Your Towngas bill is overdue! Please make payment to avoid service interruption.
+
+mode: single

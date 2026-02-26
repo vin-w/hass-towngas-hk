@@ -1,0 +1,30 @@
+blueprint:
+  name: Towngas 賬單逾期提示 🔥🔔
+  description: 當 Towngas 賬單逾期時，向你的裝置發送通知。
+  domain: automation
+  input:
+    overdue_bill_sensor:
+      name: 逾期賬單感測器
+      description: 來自 Towngas 裝置的 binary_sensor.overdue_bill。
+      selector:
+        entity:
+          domain: binary_sensor
+    notify_target:
+      name: 通知服務
+      description: 例如 notify.mobile_app_yourphone
+      selector:
+        action:
+
+triggers:
+  - trigger: state
+    entity_id: !input overdue_bill_sensor
+    to: "on"
+
+actions:
+  - action: !input notify_target
+    data:
+      title: 🔥 Towngas 賬單逾期提示
+      message: >-
+        🔔 你的 Towngas 賬單已逾期！請盡快繳費，以免影響供氣服務。
+
+mode: single
