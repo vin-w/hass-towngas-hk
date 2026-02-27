@@ -6,7 +6,9 @@
 
 香港中華煤氣 Home Assistant 自訂整合，用於透過 eService 門戶監控您的煤氣用量和帳單。
 
-![中華煤氣卡片範例](docs/images/towngas-card.png)
+![卡片範例](docs/images/towngas-card.png)
+
+![提醒範例](docs/images/notification_zh.jpeg)
 
 ## 特色 ⭐
 

@@ -122,7 +122,6 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
             identifiers={(DOMAIN, self.account_no)},
             # match the config entry naming convention
             name=f"Towngas HK Account {self.account_no}",
-            manufacturer="Unofficial",
             model="eService",
             entry_type="service",
         )

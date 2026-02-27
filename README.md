@@ -6,7 +6,9 @@ English | [繁體中文](./README_zh.md)
 
 A Home Assistant custom integration for monitoring your [Hong Kong Towngas](https://eservice.towngas.com) gas consumption and billing via the eService portal.
 
-![Towngas card example](docs/images/towngas-card.png)
+![Card example](docs/images/towngas-card.png)
+
+![Notification example](docs/images/notification_en.jpeg)
 
 ## Features ⭐
 
