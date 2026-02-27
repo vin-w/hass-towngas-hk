@@ -8,7 +8,7 @@
 
 ![卡片範例](docs/images/towngas-card.png)
 
-![提醒範例](docs/images/notification_zh.jpeg)
+![提醒範例](docs/images/notification_zh-Hant.jpeg)
 
 ## 特色 ⭐
 
