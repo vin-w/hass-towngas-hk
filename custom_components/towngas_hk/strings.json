@@ -38,34 +38,21 @@
   },
   "entity": {
     "sensor": {
-      "gas_consumption": {
-        "name": "Gas Consumption"
-      },
-      "current_balance": {
-        "name": "Current Balance"
-      },
-      "bill_amount_due": {
-        "name": "Bill Amount Due"
-      },
-      "bill_due_date": {
-        "name": "Bill Due Date"
-      },
-      "account_no": {
-        "name": "Account Number"
-      },
-      "current_month_gas_consumption": {"name": "Current Month Gas Consumption"},
-      "next_month_gas_consumption": {"name": "Next Month Gas Consumption"},
-      "current_month_gas_consumption_unit": {"name": "Current Month Gas Consumption (unit)"},
-      "next_month_gas_consumption_unit": {"name": "Next Month Gas Consumption (unit)"},
-      "current_month_code": {"name": "Current Month Code"},
-      "next_month_code": {"name": "Next Month Code"}
+      "account_no": { "name": "Account Number" },
+      "bill_amount_due": { "name": "Bill Amount Due" },
+      "bill_due_date": { "name": "Bill Due Date" },
+      "current_balance": { "name": "Current Balance" },
+      "current_month_code": { "name": "Current Month Code" },
+      "current_month_usage_mj": { "name": "Current Month Usage" },
+      "current_month_usage_unit": { "name": "Current Month Unit" },
+      "next_month_code": { "name": "Next Month Code" },
+      "next_month_estimate_mj": { "name": "Next Month Estimate" },
+      "next_month_estimate_unit": { "name": "Next Month Unit" }
     },
     "binary_sensor": {
-      "overdue_bill": {
-        "name": "Overdue Bill"
-      },
-      "current_consumption_is_estimate": {"name": "Current Month Consumption Is Estimated"},
-      "next_consumption_is_estimate": {"name": "Next Month Consumption Is Estimated"}
+      "current_month_usage_is_estimate": { "name": "Current Month Usage Is Estimated" },
+      "next_month_usage_is_estimate": { "name": "Next Month Usage Is Estimated" },
+      "overdue_bill": { "name": "Overdue Bill" }
     }
   }
 }
