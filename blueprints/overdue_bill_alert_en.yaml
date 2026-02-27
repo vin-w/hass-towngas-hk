@@ -1,30 +1,65 @@
 blueprint:
-  name: Towngas Overdue Bill Alert 🔥🔔
-  description: Send a mobile notification when the Towngas bill is overdue.
+  name: Towngas Account Overdue Alert (EN) ⛽🔔
+  description: |
+    Sends a detailed notification when any Towngas account bill becomes overdue.
+    ✅ Parses account number from trigger.entity_id
+    ✅ Auto-builds bill amount / due date / balance sensor entity_ids
   domain: automation
+  source_url: https://github.com/vin-w/hass-towngas-hk
+
   input:
-    overdue_bill_sensor:
-      name: Overdue Bill Sensor
-      description: The binary_sensor.overdue_bill entity from your Towngas device.
+    overdue_sensor:
+      name: Towngas Overdue Sensor
+      description: "Select any binary_sensor.towngas_hk_*_overdue"
       selector:
         entity:
           domain: binary_sensor
-    notify_target:
+          device_class: problem
+    notify_service:
       name: Notification Service
-      description: e.g. notify.mobile_app_yourphone
+      description: "For example: notify.mobile_app_my_phone"
+      default: notify.mobile_app_my_phone
       selector:
         text:
 
-triggers:
-  - trigger: state
-    entity_id: !input overdue_bill_sensor
+trigger:
+  - platform: state
+    entity_id: !input overdue_sensor
     to: "on"
 
-actions:
-  - action: !input notify_target
+action:
+  - variables:
+      # e.g. "binary_sensor.towngas_hk_7353551242_overdue"
+      trigger_id: "{{ trigger.entity_id }}"
+      trigger_obj_id: "{{ trigger_id.split('.')[1] if trigger_id else '' }}"
+      account_no: >-
+        {{ trigger_obj_id.split('_')[2]
+           if trigger_obj_id and trigger_obj_id.split('_') | length > 2
+           else '' }}
+
+      bill_amount_entity: >-
+        {{ 'sensor.towngas_hk_' ~ account_no ~ '_bill_amount'
+           if account_no else 'sensor.unknown' }}
+      bill_date_entity: >-
+        {{ 'sensor.towngas_hk_' ~ account_no ~ '_bill_due_date'
+           if account_no else 'sensor.unknown' }}
+
+      raw_due_date: "{{ states(bill_date_entity) }}"
+      raw_due_amount: "{{ states(bill_amount_entity) }}"
+
+      due_date: >-
+        {{ raw_due_date if raw_due_date not in ['unknown','unavailable',''] else 'Unknown' }}
+      due_amount: >-
+        {{ (raw_due_amount | float(0)) | round(2)
+           if raw_due_amount not in ['unknown','unavailable',''] else 0.0 }}
+
+  - service: !input notify_service
     data:
-      title: 🔥 Towngas Bill Overdue Alert
-      message: >-
-        🔔 Your Towngas bill is overdue! Please make payment to avoid service interruption.
+      title: "🔔 Towngas Bill Overdue!"
+      message: |
+        👤 Account: {{ account_no or 'Unknown' }}
+        📅 Due date: {{ due_date }}
+        💰 Amount: ${{ due_amount }}
 
 mode: single
+max_exceeded: silent

@@ -30,9 +30,14 @@ class TownGasBaseBinary(CoordinatorEntity[TownGasCoordinator], BinarySensorEntit
     """Base class for Towngas binary sensors."""
 
     _attr_has_entity_name = True
+    _entity_id_suffix: str = ""
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
+        account = coordinator.account_no
+        if self._entity_id_suffix:
+            self.entity_id = f"binary_sensor.towngas_hk_{account}_{self._entity_id_suffix}"
+            self._attr_unique_id = f"towngas_hk_{account}_{self._entity_id_suffix}"
 
     @property
     def device_info(self):
@@ -46,13 +51,13 @@ class TownGasBaseBinary(CoordinatorEntity[TownGasCoordinator], BinarySensorEntit
 class TownGasOverdueSensor(TownGasBaseBinary):
     """Binary sensor: on when the account has an overdue bill."""
 
-    _attr_name = "Overdue Bill"
+    _attr_translation_key = "overdue_bill"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_icon = "mdi:alert-circle"
+    _entity_id_suffix = "overdue"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_overdue"
 
     @property
     def is_on(self) -> bool:
@@ -62,12 +67,12 @@ class TownGasOverdueSensor(TownGasBaseBinary):
 class TownGasCurrentEstimateBinary(TownGasBaseBinary):
     """Binary sensor: on when current month consumption is an estimate."""
 
-    _attr_translation_key = "current_consumption_is_estimate"
+    _attr_translation_key = "current_month_usage_is_estimate"
     _attr_icon = "mdi:help-circle-outline"
+    _entity_id_suffix = "current_month_usage_is_estimate"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_current_consumption_is_estimate"
 
     @property
     def is_on(self) -> bool:
@@ -77,12 +82,12 @@ class TownGasCurrentEstimateBinary(TownGasBaseBinary):
 class TownGasNextEstimateBinary(TownGasBaseBinary):
     """Binary sensor: on when next month consumption is an estimate."""
 
-    _attr_translation_key = "next_consumption_is_estimate"
+    _attr_translation_key = "next_month_usage_is_estimate"
     _attr_icon = "mdi:help-circle-outline"
+    _entity_id_suffix = "next_month_usage_is_estimate"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_next_consumption_is_estimate"
 
     @property
     def is_on(self) -> bool:

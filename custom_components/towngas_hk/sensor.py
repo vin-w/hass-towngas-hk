@@ -1,4 +1,9 @@
-"""Sensor platform for Hong Kong Towngas."""
+"""Sensor platform for Hong Kong Towngas.
+
+Sensors are named using authentic HK billing terminology: 用量 (MJ) and
+度數 (meter units). Old IDs have been retired; there is no backward
+compatibility. New unique_ids follow `towngas_<account>_<suffix>`.
+"""
 
 from __future__ import annotations
 
@@ -24,11 +29,13 @@ async def async_setup_entry(
 ) -> None:
     coordinator: TownGasCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities([
-        TownGasCurrentConsumptionSensor(coordinator),
-        TownGasNextConsumptionSensor(coordinator),
-        # unit-based copies (1 unit = 48 MJ, integer)
-        TownGasCurrentConsumptionUnitSensor(coordinator),
-        TownGasNextConsumptionUnitSensor(coordinator),
+        # usage sensors (MJ)
+        TownGasCurrentMonthUsageMJSensor(coordinator),
+        TownGasNextMonthEstimateMJSensor(coordinator),
+        # unit sensors (display only)
+        TownGasCurrentMonthUsageUnitSensor(coordinator),
+        TownGasNextMonthEstimateUnitSensor(coordinator),
+        # existing metadata sensors
         TownGasCurrentMonthCodeSensor(coordinator),
         TownGasNextMonthCodeSensor(coordinator),
         TownGasAccountSensor(coordinator),
@@ -40,9 +47,14 @@ async def async_setup_entry(
 
 class TownGasBaseSensor(CoordinatorEntity[TownGasCoordinator], SensorEntity):
     _attr_has_entity_name = True
+    _entity_id_suffix: str = ""
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
+        account = coordinator.account_no
+        if self._entity_id_suffix:
+            self.entity_id = f"sensor.towngas_hk_{account}_{self._entity_id_suffix}"
+            self._attr_unique_id = f"towngas_hk_{account}_{self._entity_id_suffix}"
 
     @property
     def device_info(self):
@@ -53,16 +65,23 @@ class TownGasBaseSensor(CoordinatorEntity[TownGasCoordinator], SensorEntity):
         return self.coordinator.data
 
 
-class TownGasCurrentConsumptionSensor(TownGasBaseSensor):
-    _attr_translation_key = "current_month_gas_consumption"
+class TownGasCurrentMonthUsageMJSensor(TownGasBaseSensor):
+    """Actual gas usage for the current month in megajoules (MJ).
+
+    The value corresponds to the last completed meter read. The sensor exposes
+    `month` and `is_estimate` attributes for dashboard templates.
+    """
+
+    _attr_translation_key = "current_month_usage_mj"
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "MJ"
     _attr_state_class = SensorStateClass.TOTAL
     _attr_icon = "mdi:fire"
+    _entity_id_suffix = "current_usage_mj"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_current_consumption"
+
 
     @property
     def native_value(self) -> float | None:
@@ -70,8 +89,6 @@ class TownGasCurrentConsumptionSensor(TownGasBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        # Expose a minimal, consistent attribute set for templates and the
-        # Energy dashboard: `month` and `is_estimate`.
         return {
             "month": self._data.current_month,
             "is_estimate": self._data.is_current_month_estimate,
@@ -80,16 +97,23 @@ class TownGasCurrentConsumptionSensor(TownGasBaseSensor):
 
 
 
-class TownGasNextConsumptionSensor(TownGasBaseSensor):
-    _attr_translation_key = "next_month_gas_consumption"
+class TownGasNextMonthEstimateMJSensor(TownGasBaseSensor):
+    """Projected gas usage for the upcoming month in MJ.
+
+    This is a rolling estimate until the next meter read; on 2026/02/27 the
+    estimate might be 24 MJ for March (partial cycle).
+    """
+
+    _attr_translation_key = "next_month_estimate_mj"
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "MJ"
     _attr_state_class = SensorStateClass.TOTAL
     _attr_icon = "mdi:fire"
+    _entity_id_suffix = "next_estimate_mj"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_next_consumption"
+
 
     @property
     def native_value(self) -> float | None:
@@ -97,7 +121,6 @@ class TownGasNextConsumptionSensor(TownGasBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict:
-        # Minimal consistent attributes for next-month sensor as well
         return {
             "month": self._data.next_month,
             "is_estimate": self._data.is_next_month_estimate,
@@ -105,36 +128,35 @@ class TownGasNextConsumptionSensor(TownGasBaseSensor):
 
 
 # ---------------------------------------------------------------------------
-# Unit-conversion sensors (1 unit = 48 MJ)
+# Unit sensors – display only, no energy/device class
 # ---------------------------------------------------------------------------
 
-class TownGasCurrentConsumptionUnitSensor(TownGasCurrentConsumptionSensor):
-    _attr_translation_key = "current_month_gas_consumption_unit"
+class TownGasCurrentMonthUsageUnitSensor(TownGasCurrentMonthUsageMJSensor):
+    _attr_translation_key = "current_month_usage_unit"
     _attr_native_unit_of_measurement = "Unit"
+    _entity_id_suffix = "current_usage_unit"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        # avoid duplicate unique_id with the MJ sensor
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_current_consumption_unit"
+
 
     @property
     def native_value(self) -> int | None:  # type: ignore[override]
-        """Return the consumption converted to 48‑MJ units."""
         val = super().native_value
         return int(val / 48) if val is not None else None
 
 
-class TownGasNextConsumptionUnitSensor(TownGasNextConsumptionSensor):
-    _attr_translation_key = "next_month_gas_consumption_unit"
+class TownGasNextMonthEstimateUnitSensor(TownGasNextMonthEstimateMJSensor):
+    _attr_translation_key = "next_month_estimate_unit"
     _attr_native_unit_of_measurement = "Unit"
+    _entity_id_suffix = "next_estimate_unit"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_next_consumption_unit"
+
 
     @property
     def native_value(self) -> int | None:  # type: ignore[override]
-        """Return the predicted consumption converted to 48‑MJ units."""
         val = super().native_value
         return int(val / 48) if val is not None else None
 
@@ -142,10 +164,11 @@ class TownGasNextConsumptionUnitSensor(TownGasNextConsumptionSensor):
 class TownGasAccountSensor(TownGasBaseSensor):
     _attr_translation_key = "account_no"
     _attr_icon = "mdi:account"
+    _entity_id_suffix = "account_no"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_account_no"
+
 
     @property
     def native_value(self) -> str | None:
@@ -159,10 +182,11 @@ class TownGasBalanceSensor(TownGasBaseSensor):
     _attr_native_unit_of_measurement = "HKD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:cash"
+    _entity_id_suffix = "balance"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_balance"
+
 
     @property
     def native_value(self) -> float | None:
@@ -184,10 +208,11 @@ class TownGasBillAmountSensor(TownGasBaseSensor):
     _attr_native_unit_of_measurement = "HKD"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:receipt"
+    _entity_id_suffix = "bill_amount"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_bill_amount"
+
 
     @property
     def native_value(self) -> float | None:
@@ -198,10 +223,11 @@ class TownGasBillDateSensor(TownGasBaseSensor):
     _attr_translation_key = "bill_due_date"
     _attr_device_class = SensorDeviceClass.DATE
     _attr_icon = "mdi:calendar-clock"
+    _entity_id_suffix = "bill_due_date"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_bill_due_date"
+
 
     @property
     def native_value(self) -> datetime.date | None:
@@ -213,10 +239,11 @@ class TownGasBillDateSensor(TownGasBaseSensor):
 class TownGasCurrentMonthCodeSensor(TownGasBaseSensor):
     _attr_translation_key = "current_month_code"
     _attr_icon = "mdi:calendar"
+    _entity_id_suffix = "current_month_code"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_current_month_code"
+
 
     @property
     def native_value(self) -> str | None:
@@ -234,10 +261,11 @@ class TownGasCurrentMonthCodeSensor(TownGasBaseSensor):
 class TownGasNextMonthCodeSensor(TownGasBaseSensor):
     _attr_translation_key = "next_month_code"
     _attr_icon = "mdi:calendar"
+    _entity_id_suffix = "next_month_code"
 
     def __init__(self, coordinator: TownGasCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"towngas_hk_{coordinator.account_no}_next_month_code"
+
 
     @property
     def native_value(self) -> str | None:

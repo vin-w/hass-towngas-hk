@@ -1,30 +1,65 @@
 blueprint:
-  name: Towngas 賬單逾期提示 🔥🔔
-  description: 當 Towngas 賬單逾期時，向你的裝置發送通知。
+  name: Towngas 帳戶逾期通知 (繁體中文) ⛽🔔
+  description: |
+    任何 Towngas 帳戶逾期時發送詳細通知。
+    ✅ 由 trigger.entity_id 解析帳戶號碼
+    ✅ 自動組合帳單金額 / 到期日 / 餘額感測器 entity_id
   domain: automation
+  source_url: https://github.com/vin-w/hass-towngas-hk
+
   input:
-    overdue_bill_sensor:
-      name: 逾期賬單感測器
-      description: 來自 Towngas 裝置的 binary_sensor.overdue_bill。
+    overdue_sensor:
+      name: Towngas 逾期感測器
+      description: "選擇任何 binary_sensor.towngas_hk_*_overdue"
       selector:
         entity:
           domain: binary_sensor
-    notify_target:
+          device_class: problem
+    notify_service:
       name: 通知服務
-      description: 例如 notify.mobile_app_yourphone
+      description: "例如 notify.mobile_app_my_phone"
+      default: notify.mobile_app_my_phone
       selector:
         text:
 
-triggers:
-  - trigger: state
-    entity_id: !input overdue_bill_sensor
+trigger:
+  - platform: state
+    entity_id: !input overdue_sensor
     to: "on"
 
-actions:
-  - action: !input notify_target
+action:
+  - variables:
+      # e.g. "binary_sensor.towngas_hk_7353551242_overdue"
+      trigger_id: "{{ trigger.entity_id }}"
+      trigger_obj_id: "{{ trigger_id.split('.')[1] if trigger_id else '' }}"
+      account_no: >-
+        {{ trigger_obj_id.split('_')[2]
+           if trigger_obj_id and trigger_obj_id.split('_') | length > 2
+           else '' }}
+
+      bill_amount_entity: >-
+        {{ 'sensor.towngas_hk_' ~ account_no ~ '_bill_amount'
+           if account_no else 'sensor.unknown' }}
+      bill_date_entity: >-
+        {{ 'sensor.towngas_hk_' ~ account_no ~ '_bill_due_date'
+           if account_no else 'sensor.unknown' }}
+
+      raw_due_date: "{{ states(bill_date_entity) }}"
+      raw_due_amount: "{{ states(bill_amount_entity) }}"
+
+      due_date: >-
+        {{ raw_due_date if raw_due_date not in ['unknown','unavailable',''] else '未知' }}
+      due_amount: >-
+        {{ (raw_due_amount | float(0)) | round(2)
+           if raw_due_amount not in ['unknown','unavailable',''] else 0.0 }}
+
+  - service: !input notify_service
     data:
-      title: 🔥 Towngas 賬單逾期提示
-      message: >-
-        🔔 你的 Towngas 賬單已逾期！請盡快繳費，以免影響供氣服務。
+      title: "🔔 Towngas 帳單逾期！"
+      message: |
+        👤 帳戶：{{ account_no or '未知' }}
+        📅 到期日：{{ due_date }}
+        💰 應繳：${{ due_amount }}
 
 mode: single
+max_exceeded: silent

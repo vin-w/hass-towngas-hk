@@ -38,21 +38,21 @@
   },
   "entity": {
     "sensor": {
-      "current_month_gas_consumption": { "name": "本月煤氣使用量" },
-      "next_month_gas_consumption": { "name": "下月煤氣使用量" },
       "account_no": { "name": "帳戶號碼" },
-      "current_month_code": { "name": "本月代碼" },
-      "next_month_code": { "name": "下月代碼" },
-      "current_month_gas_consumption_unit": { "name": "本月煤氣使用量（單位）" },
-      "next_month_gas_consumption_unit": { "name": "下月煤氣使用量（單位）" },
-      "current_balance": { "name": "帳戶結餘" },
       "bill_amount_due": { "name": "最近一期賬單金額" },
-      "bill_due_date": { "name": "賬單到期日" }
+      "bill_due_date": { "name": "賬單到期日" },
+      "current_balance": { "name": "帳戶結餘" },
+      "current_month_code": { "name": "本月代碼" },
+      "current_month_usage_mj": { "name": "本月用量" },
+      "current_month_usage_unit": { "name": "本月度數" },
+      "next_month_code": { "name": "下月代碼" },
+      "next_month_estimate_mj": { "name": "下月估計用量" },
+      "next_month_estimate_unit": { "name": "下月估計度數" }
     },
     "binary_sensor": {
-      "overdue_bill": { "name": "逾期未繳" },
-      "current_consumption_is_estimate": { "name": "本月使用量為估計值" },
-      "next_consumption_is_estimate": { "name": "下月使用量為估計值" }
+      "current_month_usage_is_estimate": { "name": "本月使用量為估計值" },
+      "next_month_usage_is_estimate": { "name": "下月使用量為估計值" },
+      "overdue_bill": { "name": "逾期未繳" }
     }
   }
 }

@@ -4,13 +4,15 @@
 
 繁體中文 | [English](./README.md)
 
-香港中華煤氣 Home Assistant 自訂整合，用於透過 eService 門戶監控您的煤氣消耗量和帳單。
+香港中華煤氣 Home Assistant 自訂整合，用於透過 eService 門戶監控您的煤氣用量和帳單。
 
-![中華煤氣卡片範例](docs/images/towngas-card.png)
+![卡片範例](docs/images/towngas-card.png)
+
+![提醒範例](docs/images/notification_zh.jpeg)
 
 ## 特色 ⭐
 
-- 🔥 現月與次月煤氣消耗量（MJ，實測或估計）
+- 🔥 現月與次月煤氣用量及度數（實測或估計）
 - 💰 帳單歷史（HKD）
 - 👥 支援多個中華煤氣帳戶
 - 📊 相容 Home Assistant 能源儀表板
@@ -41,31 +43,29 @@
 
 | 實體 | 類型 | 單位 | 描述 |
 |------|------|------|------|
-| `sensor.current_month_gas_consumption` | 感測器 | MJ | 當月煤氣消耗量（月中為估計值） |
-| `sensor.next_month_gas_consumption` | 感測器 | MJ | 下一個月預測用量 |
-| `sensor.current_month_gas_consumption_unit` | 感測器 | 度 | 當月消耗量（1 度 = 48 MJ，整數） |
-| `sensor.next_month_gas_consumption_unit` | 感測器 | 度 | 下月預測消耗量（1 度 = 48 MJ，整數） |
-| `sensor.account_no` | 感測器 | — | 中華煤氣帳戶號碼 |
-| `sensor.current_month_code` | 感測器 | — | 機器可讀的本月代碼（`YYYY-MM`） |
-| `sensor.next_month_code` | 感測器 | — | 機器可讀的下月代碼（`YYYY-MM`） |
-| `binary_sensor.current_consumption_is_estimate` | 二元感測器 | — | 若當月數值為估計則為 `on` |
-| `binary_sensor.next_consumption_is_estimate` | 二元感測器 | — | 若下月數值為估計則為 `on` |
-| `sensor.current_balance` | 感測器 | HKD | 帳戶結餘 |
-| `sensor.bill_amount_due` | 感測器 | HKD | 最近一期賬單金額 |
-| `sensor.bill_due_date` | 感測器 | 日期 | 賬單到期日 |
-| `binary_sensor.overdue_bill` | 二元感測器 | — | 逾期未繳時顯示為「問題」 |
+| `sensor.towngas_hk_{account}_current_month_usage_mj` | 感測器 | MJ | 當月用量（最後抄表） |
+| `sensor.towngas_hk_{account}_current_month_usage_unit` | 感測器 | 度數 | 當月度數（抄表顯示） |
+| `sensor.towngas_hk_{account}_next_month_estimate_mj` | 感測器 | MJ | 下月估計用量 |
+| `sensor.towngas_hk_{account}_next_month_estimate_unit` | 感測器 | 度數 | 下月估計度數 |
+| `sensor.towngas_hk_{account}_account_no` | 感測器 | — | 中華煤氣帳戶號碼 |
+| `sensor.towngas_hk_{account}_current_month_code` | 感測器 | — | 機器可讀的本月代碼（`YYYY-MM`） |
+| `sensor.towngas_hk_{account}_next_month_code` | 感測器 | — | 機器可讀的下月代碼（`YYYY-MM`） |
+| `binary_sensor.towngas_hk_{account}_current_month_usage_is_estimate` | 二元感測器 | — | 若當月數值為估計則為 `on` |
+| `binary_sensor.towngas_hk_{account}_next_month_usage_is_estimate` | 二元感測器 | — | 若下月數值為估計則為 `on` |
+| `sensor.towngas_hk_{account}_current_balance` | 感測器 | HKD | 帳戶結餘 |
+| `sensor.towngas_hk_{account}_bill_amount_due` | 感測器 | HKD | 最近一期賬單金額 |
+| `sensor.towngas_hk_{account}_bill_due_date` | 感測器 | 日期 | 賬單到期日 |
+| `binary_sensor.towngas_hk_{account}_overdue_bill` | 二元感測器 | — | 逾期未繳時顯示為「問題」 |
 
-### 屬性（由兩個消耗量感測器共用）
+### 屬性（由兩個用量感測器共用）
 
-`sensor.current_month_gas_consumption` 和
-`sensor.next_month_gas_consumption` 均提供下列簡潔屬性：
+`sensor.towngas_hk_{account}_current_month_usage_mj/_unit` 和
+`sensor.towngas_hk_{account}_next_month_estimate_mj_unit` 均提供下列簡潔屬性：
 
 | 屬性 | 描述 |
 |------|------|
 | `month` | 感測器值所屬之月份字串（例如「Feb 2026」） |
 | `is_estimate` | 若該數值為預估（非實際抄表）則為 True |
-
-帳戶號碼現已提供為 `sensor.account_no` 。
 
 ### 屬性（`sensor.current_balance`）
 
@@ -75,6 +75,26 @@
 | `auto_pay` | 是否已設定自動轉賬 |
 | `ibill` | 是否已登記電子賬單 |
 | `account_status` | 帳戶狀態（`A` = 有效） |
+
+## 用量與度數說明
+
+- **用量 (MJ)** 指的是每次抄表時顯示的煤氣熱能消耗，以兆焦為單位，
+  亦即賬單上的實際耗用數值。
+- **度數** 是按每 48 MJ 計算的傳統電錶式顯示單位，也是中華煤氣
+  在網站與紙本賬單上使用的標準。
+
+### 帳單周期說明
+
+當月用量感測器代表**最後完成的抄表周期**。中華煤氣通常在下月的 3-5 日進行抄表，因此在 **2026-02-27** 時，二月的數據約為 **1225 MJ**。下月估計為循環推估值，在下次抄表前可能顯示較小數值（例如 24 MJ）。
+
+```
+Feb 3–5 read → 1225 MJ (Feb usage)
+                 ↘ billing cycle continues → estimate 24 MJ (Mar)
+```
+
+官方資源：
+- 收費標準：https://www.towngas.com/tc/Household/Customer-Services/Tariff
+- 如何閱讀煤氣單：https://www.towngas.com/media/getmedia/2f4237d6-bd4c-4f13-9b7c-50b009183468/how-to-read-bill_chi.pdf
 
 ## 儀表板範例 🖥️
 
@@ -86,23 +106,23 @@ cards:
   - type: history-graph
     title: 煤氣使用量（月度）
     entities:
-      - entity: sensor.towngas_current_month_gas_consumption
-        name: 當月
-      - entity: sensor.towngas_next_month_gas_consumption
-        name: 下月
+      - entity: sensor.towngas_hk_{account}_current_month_usage_mj
+        name: 當月 (MJ)
+      - entity: sensor.towngas_hk_{account}_next_month_estimate_mj
+        name: 下月估計 (MJ)
     hours_to_show: 720
   - type: entities
     state_color: true
     entities:
-      - entity: binary_sensor.towngas_overdue_bill
+      - entity: binary_sensor.towngas_hk_{account}_overdue_bill
         name: 逾期帳單
-      - entity: sensor.towngas_bill_due_date
-      - entity: sensor.towngas_bill_amount_due
+      - entity: sensor.towngas_hk_{account}_bill_due_date
+      - entity: sensor.towngas_hk_{account}_bill_amount_due
 ```
 
 ## 能源儀表板 ⚡
 
-前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增sensor.current_month_gas_consumption。
+前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增 `sensor.towngas_hk_{account}_current_month_usage_mj`。
 
 ![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
 
