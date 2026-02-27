@@ -20,9 +20,9 @@ async def async_setup_entry(
     """Set up Towngas binary sensors using the shared coordinator."""
     coordinator: TownGasCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities([
-        TownGasOverdueSensor(coordinator),
-        TownGasCurrentEstimateBinary(coordinator),
-        TownGasNextEstimateBinary(coordinator),
+        TownGasOverdue(coordinator),
+        TownGasCurrentMonthUsageIsEstimate(coordinator),
+        TownGasNextMonthUsageIsEstimate(coordinator),
     ])
 
 
@@ -48,10 +48,10 @@ class TownGasBaseBinary(CoordinatorEntity[TownGasCoordinator], BinarySensorEntit
         return self.coordinator.data
 
 
-class TownGasOverdueSensor(TownGasBaseBinary):
+class TownGasOverdue(TownGasBaseBinary):
     """Binary sensor: on when the account has an overdue bill."""
 
-    _attr_translation_key = "overdue_bill"
+    _attr_translation_key = "overdue"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_icon = "mdi:alert-circle"
     _entity_id_suffix = "overdue"
@@ -64,7 +64,7 @@ class TownGasOverdueSensor(TownGasBaseBinary):
         return self.coordinator.data.is_overdue if self.coordinator.data else False
 
 
-class TownGasCurrentEstimateBinary(TownGasBaseBinary):
+class TownGasCurrentMonthUsageIsEstimate(TownGasBaseBinary):
     """Binary sensor: on when current month consumption is an estimate."""
 
     _attr_translation_key = "current_month_usage_is_estimate"
@@ -79,7 +79,7 @@ class TownGasCurrentEstimateBinary(TownGasBaseBinary):
         return bool(self._data.is_current_month_estimate)
 
 
-class TownGasNextEstimateBinary(TownGasBaseBinary):
+class TownGasNextMonthUsageIsEstimate(TownGasBaseBinary):
     """Binary sensor: on when next month consumption is an estimate."""
 
     _attr_translation_key = "next_month_usage_is_estimate"

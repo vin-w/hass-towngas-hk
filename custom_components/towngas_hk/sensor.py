@@ -30,18 +30,18 @@ async def async_setup_entry(
     coordinator: TownGasCoordinator = hass.data[DOMAIN][config_entry.entry_id]
     async_add_entities([
         # usage sensors (MJ)
-        TownGasCurrentMonthUsageMJSensor(coordinator),
-        TownGasNextMonthEstimateMJSensor(coordinator),
+        TownGasCurrentUsageMj(coordinator),
+        TownGasNextEstimateMj(coordinator),
         # unit sensors (display only)
-        TownGasCurrentMonthUsageUnitSensor(coordinator),
-        TownGasNextMonthEstimateUnitSensor(coordinator),
+        TownGasCurrentUsageUnit(coordinator),
+        TownGasNextEstimateUnit(coordinator),
         # existing metadata sensors
-        TownGasCurrentMonthCodeSensor(coordinator),
-        TownGasNextMonthCodeSensor(coordinator),
-        TownGasAccountSensor(coordinator),
-        TownGasBalanceSensor(coordinator),
-        TownGasBillAmountSensor(coordinator),
-        TownGasBillDateSensor(coordinator),
+        TownGasCurrentMonthCode(coordinator),
+        TownGasNextMonthCode(coordinator),
+        TownGasAccountNo(coordinator),
+        TownGasBalance(coordinator),
+        TownGasBillAmount(coordinator),
+        TownGasBillDueDate(coordinator),
     ])
 
 
@@ -65,14 +65,14 @@ class TownGasBaseSensor(CoordinatorEntity[TownGasCoordinator], SensorEntity):
         return self.coordinator.data
 
 
-class TownGasCurrentMonthUsageMJSensor(TownGasBaseSensor):
+class TownGasCurrentUsageMj(TownGasBaseSensor):
     """Actual gas usage for the current month in megajoules (MJ).
 
     The value corresponds to the last completed meter read. The sensor exposes
     `month` and `is_estimate` attributes for dashboard templates.
     """
 
-    _attr_translation_key = "current_month_usage_mj"
+    _attr_translation_key = "current_usage_mj"
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "MJ"
     _attr_state_class = SensorStateClass.TOTAL
@@ -97,14 +97,14 @@ class TownGasCurrentMonthUsageMJSensor(TownGasBaseSensor):
 
 
 
-class TownGasNextMonthEstimateMJSensor(TownGasBaseSensor):
+class TownGasNextEstimateMj(TownGasBaseSensor):
     """Projected gas usage for the upcoming month in MJ.
 
     This is a rolling estimate until the next meter read; on 2026/02/27 the
     estimate might be 24 MJ for March (partial cycle).
     """
 
-    _attr_translation_key = "next_month_estimate_mj"
+    _attr_translation_key = "next_estimate_mj"
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "MJ"
     _attr_state_class = SensorStateClass.TOTAL
@@ -131,8 +131,8 @@ class TownGasNextMonthEstimateMJSensor(TownGasBaseSensor):
 # Unit sensors – display only, no energy/device class
 # ---------------------------------------------------------------------------
 
-class TownGasCurrentMonthUsageUnitSensor(TownGasCurrentMonthUsageMJSensor):
-    _attr_translation_key = "current_month_usage_unit"
+class TownGasCurrentUsageUnit(TownGasCurrentUsageMj):
+    _attr_translation_key = "current_usage_unit"
     _attr_native_unit_of_measurement = "Unit"
     _entity_id_suffix = "current_usage_unit"
 
@@ -146,8 +146,8 @@ class TownGasCurrentMonthUsageUnitSensor(TownGasCurrentMonthUsageMJSensor):
         return int(val / 48) if val is not None else None
 
 
-class TownGasNextMonthEstimateUnitSensor(TownGasNextMonthEstimateMJSensor):
-    _attr_translation_key = "next_month_estimate_unit"
+class TownGasNextEstimateUnit(TownGasNextEstimateMj):
+    _attr_translation_key = "next_estimate_unit"
     _attr_native_unit_of_measurement = "Unit"
     _entity_id_suffix = "next_estimate_unit"
 
@@ -161,7 +161,7 @@ class TownGasNextMonthEstimateUnitSensor(TownGasNextMonthEstimateMJSensor):
         return int(val / 48) if val is not None else None
 
 
-class TownGasAccountSensor(TownGasBaseSensor):
+class TownGasAccountNo(TownGasBaseSensor):
     _attr_translation_key = "account_no"
     _attr_icon = "mdi:account"
     _entity_id_suffix = "account_no"
@@ -176,8 +176,8 @@ class TownGasAccountSensor(TownGasBaseSensor):
         return self.coordinator.account_no
 
 
-class TownGasBalanceSensor(TownGasBaseSensor):
-    _attr_translation_key = "current_balance"
+class TownGasBalance(TownGasBaseSensor):
+    _attr_translation_key = "balance"
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "HKD"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -202,8 +202,8 @@ class TownGasBalanceSensor(TownGasBaseSensor):
         }
 
 
-class TownGasBillAmountSensor(TownGasBaseSensor):
-    _attr_translation_key = "bill_amount_due"
+class TownGasBillAmount(TownGasBaseSensor):
+    _attr_translation_key = "bill_amount"
     _attr_device_class = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement = "HKD"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -219,7 +219,7 @@ class TownGasBillAmountSensor(TownGasBaseSensor):
         return self._data.bill_amount_due
 
 
-class TownGasBillDateSensor(TownGasBaseSensor):
+class TownGasBillDueDate(TownGasBaseSensor):
     _attr_translation_key = "bill_due_date"
     _attr_device_class = SensorDeviceClass.DATE
     _attr_icon = "mdi:calendar-clock"
@@ -236,7 +236,7 @@ class TownGasBillDateSensor(TownGasBaseSensor):
 
 # ---- additional sensors --------------------------------------------------
 
-class TownGasCurrentMonthCodeSensor(TownGasBaseSensor):
+class TownGasCurrentMonthCode(TownGasBaseSensor):
     _attr_translation_key = "current_month_code"
     _attr_icon = "mdi:calendar"
     _entity_id_suffix = "current_month_code"
@@ -258,7 +258,7 @@ class TownGasCurrentMonthCodeSensor(TownGasBaseSensor):
             return None
 
 
-class TownGasNextMonthCodeSensor(TownGasBaseSensor):
+class TownGasNextMonthCode(TownGasBaseSensor):
     _attr_translation_key = "next_month_code"
     _attr_icon = "mdi:calendar"
     _entity_id_suffix = "next_month_code"
