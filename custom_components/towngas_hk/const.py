@@ -20,3 +20,15 @@ USER_AGENT = (
 
 DEFAULT_TIMEOUT = 30
 SCAN_INTERVAL_HOURS = 1
+
+# configuration
+CONF_FUEL_ADJUSTMENT_RATE = "fuel_adjustment_rate"
+
+# default helper value (cents per MJ)
+DEFAULT_FUEL_ADJUSTMENT_RATE = 4.52
+# entity ID template for the input_number helper
+FUEL_RATE_ENTITY = "input_number.towngas_hk_{account}_fuel_adjust_rate"
+
+# fixed monthly fees (used by tariff calculation)
+BASIC_CHARGE = 20.0
+MAINTENANCE_FEE = 10.0

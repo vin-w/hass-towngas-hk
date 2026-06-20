@@ -1,1 +1,16 @@
+# Python bytecode, packages, and virtual environments
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# IDE/Editor settings
+.vscode/
+.idea/
+.ipynb_checkpoints/
+
+# Other common ignored files
 .DS_Store
+.env

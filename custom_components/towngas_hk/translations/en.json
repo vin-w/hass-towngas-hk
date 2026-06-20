@@ -47,7 +47,8 @@
       "current_usage_unit": { "name": "Current Month Unit" },
       "next_month_code": { "name": "Next Month Code" },
       "next_estimate_mj": { "name": "Next Month Estimate" },
-      "next_estimate_unit": { "name": "Next Month Unit" }
+      "next_estimate_unit": { "name": "Next Month Unit" },
+      "next_estimate_tariff": { "name": "Next Month Estimated Tariff" }
     },
     "binary_sensor": {
       "current_month_usage_is_estimate": { "name": "Current Month Usage Is Estimated" },

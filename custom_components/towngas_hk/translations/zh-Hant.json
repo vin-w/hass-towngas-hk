@@ -47,7 +47,8 @@
       "current_usage_unit": { "name": "本月度數" },
       "next_month_code": { "name": "下月代碼" },
       "next_estimate_mj": { "name": "下月估計用量" },
-      "next_estimate_unit": { "name": "下月估計度數" }
+      "next_estimate_unit": { "name": "下月估計度數" },
+      "next_estimate_tariff": { "name": "下月估計煤氣費" }
     },
     "binary_sensor": {
       "current_month_usage_is_estimate": { "name": "本月使用量為估計值" },

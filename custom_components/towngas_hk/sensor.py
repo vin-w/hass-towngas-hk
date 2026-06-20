@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, DEFAULT_FUEL_ADJUSTMENT_RATE, FUEL_RATE_ENTITY, BASIC_CHARGE, MAINTENANCE_FEE
 from .coordinator import TownGasCoordinator, TownGasData
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,6 +42,8 @@ async def async_setup_entry(
         TownGasBalance(coordinator),
         TownGasBillAmount(coordinator),
         TownGasBillDueDate(coordinator),
+        # tariff sensor should come last
+        TownGasNextEstimateTariff(coordinator),
     ])
 
 
@@ -159,6 +161,81 @@ class TownGasNextEstimateUnit(TownGasNextEstimateMj):
     def native_value(self) -> int | None:  # type: ignore[override]
         val = super().native_value
         return int(val / 48) if val is not None else None
+
+
+# ---------------------------------------------------------------------------
+# Tariff helper and sensor
+# ---------------------------------------------------------------------------
+
+def calc_towngas_bill(mj: float, fuel_rate_cent: float) -> float:
+    """Return total bill amount in HKD for the given usage and fuel rate."""
+    tiers = [
+        (500,   28.55),
+        (2000,  28.45),
+        (5000,  28.41),
+        (10000, 28.31),
+        (15000, 28.21),
+        (25000, 28.08),
+        (50000, 27.98),
+        (50000, 27.89),
+        (50000, 27.79),
+        (50000, 27.70),
+        (float("inf"), 27.60),
+    ]
+    remaining = mj
+    gas_charge = 0.0
+    for tier_mj, price_cent in tiers:
+        if remaining <= 0:
+            break
+        use_mj = min(remaining, tier_mj)
+        gas_charge += use_mj * (price_cent / 100.0)
+        remaining -= use_mj
+
+    fuel_adj = mj * (fuel_rate_cent / 100.0)
+
+    # If the calculated gas charge is below the monthly initial charge (HK$20),
+    # then levy that initial charge. 
+    total = gas_charge + fuel_adj + MAINTENANCE_FEE
+    if gas_charge < BASIC_CHARGE:
+        total += BASIC_CHARGE
+
+    return round(total, 2)
+
+
+class TownGasNextEstimateTariff(TownGasBaseSensor):
+    _attr_translation_key = "next_estimate_tariff"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "HKD"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:cash"
+    _entity_id_suffix = "next_estimate_tariff"
+
+    def __init__(self, coordinator: TownGasCoordinator) -> None:
+        super().__init__(coordinator)
+
+    @property
+    def native_value(self) -> float | None:
+        mj = self._data.next_month_consumption
+        if mj is None:
+            return None
+
+        rate = DEFAULT_FUEL_ADJUSTMENT_RATE
+        rate_entity = FUEL_RATE_ENTITY.format(account=self.coordinator.account_no)
+        state = self.hass.states.get(rate_entity)
+        if state is not None:
+            try:
+                rate = float(state.state)
+            except (ValueError, TypeError):
+                pass
+
+        return calc_towngas_bill(mj, rate)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {
+            "month": self._data.next_month,
+            "is_estimate": self._data.is_next_month_estimate,
+        }
 
 
 class TownGasAccountNo(TownGasBaseSensor):

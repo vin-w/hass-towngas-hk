@@ -47,6 +47,7 @@ Each configured Towngas account is added as a **device** (named `Towngas HK Acco
 | `sensor.towngas_hk_{account}_current_usage_unit` | Sensor | 度數 | Current month unit (meter reading) |
 | `sensor.towngas_hk_{account}_next_estimate_mj` | Sensor | MJ | Next month estimated usage |
 | `sensor.towngas_hk_{account}_next_estimate_unit` | Sensor | 度數 | Next month estimated unit |
+| `sensor.towngas_hk_{account}_next_estimate_tariff` | Sensor | HKD | Next month estimated tariff (computed)
 | `sensor.towngas_hk_{account}_account_no` | Sensor | — | Towngas account number |
 | `sensor.towngas_hk_{account}_current_month_code` | Sensor | — | Machine-friendly month code for current month (`YYYY-MM`) |
 | `sensor.towngas_hk_{account}_next_month_code` | Sensor | — | Machine-friendly month code for next month (`YYYY-MM`) |
@@ -68,6 +69,15 @@ Both `sensor.towngas_hk_{account}_current_usage_mj/_unit` and
 | `is_estimate` | True if the reported value is an estimated (forecast) value |
 
 ### Attributes (`sensor.towngas_hk_{account}_balance`)
+
+### Fuel adjustment helper
+
+An `input_number` helper named `Towngas <account> Fuel Adjust Rate` is created
+when the integration is set up. It defaults to **4.52 ¢/MJ** and can be edited
+via **Settings → Devices & Services → Helpers**. The tariff sensor reads this
+value to compute next-month charges; if the helper is missing the default rate
+is used.
+
 
 | Attribute | Description |
 |-----------|-------------|

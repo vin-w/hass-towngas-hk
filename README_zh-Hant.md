@@ -47,6 +47,7 @@
 | `sensor.towngas_hk_{account}_current_usage_unit` | 感測器 | 度數 | 當月度數（抄表顯示） |
 | `sensor.towngas_hk_{account}_next_estimate_mj` | 感測器 | MJ | 下月估計用量 |
 | `sensor.towngas_hk_{account}_next_estimate_unit` | 感測器 | 度數 | 下月估計度數 |
+| `sensor.towngas_hk_{account}_next_estimate_tariff` | 感測器 | HKD | 下月估計煤氣費 |
 | `sensor.towngas_hk_{account}_account_no` | 感測器 | — | 中華煤氣帳戶號碼 |
 | `sensor.towngas_hk_{account}_current_month_code` | 感測器 | — | 機器可讀的本月代碼（`YYYY-MM`） |
 | `sensor.towngas_hk_{account}_next_month_code` | 感測器 | — | 機器可讀的下月代碼（`YYYY-MM`） |
@@ -66,6 +67,13 @@
 |------|------|
 | `month` | 感測器值所屬之月份字串（例如「Feb 2026」） |
 | `is_estimate` | 若該數值為預估（非實際抄表）則為 True |
+
+### 燃料調整費率輔助輸入
+
+安裝整合時會自動建立一個名為 `Towngas <帳戶> Fuel Adjust Rate` 的
+`input_number` 輔助實體。預設值為 **4.52 仙/MJ**，可至「設定 → 設備與
+服務 → 輔助實體」修改。費率變更後，下月煤氣費感測器會使用該值計算；
+如果輔助實體不存在，則採用預設費率。
 
 ### 屬性（`sensor.towngas_hk_{account}_balance`）
 
