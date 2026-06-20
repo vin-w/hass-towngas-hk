@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 
 import aiohttp
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryAuthFailed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -394,10 +394,9 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
             body = await self._login_raw(page_token)
 
             if body.get("guid"):
-                # OTP required — can't handle silently, trigger reauth
+                # OTP required — raise auth failed to trigger reauth flow
                 self._csrf_token = None
-                self.async_config_entry_login_failed()
-                raise UpdateFailed("OTP verification required — reauth triggered")
+                raise ConfigEntryAuthFailed("OTP verification required")
 
             if not body.get("email"):
                 raise UpdateFailed("Towngas login failed - invalid credentials")
