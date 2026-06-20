@@ -7,6 +7,7 @@ CONF_ACCOUNT_NO = "account_no"
 BASE_URL = "https://eservice.towngas.com"
 LOGIN_PAGE = f"{BASE_URL}/en/Home/Index"
 LOGIN_API = f"{BASE_URL}/EAccount/Login/SignIn"
+GENERATE_OTP_API = f"{BASE_URL}/EAccount/Login/GenerateVerifyCode"
 ACCOUNT_API = f"{BASE_URL}/Common/GetHostedTGAccountAsync"
 METER_API = f"{BASE_URL}/Common/GetMeterReadingInfoForChat"
 BILLING_API = f"{BASE_URL}/EBilling/GetEBillingInfo"
@@ -19,7 +20,7 @@ USER_AGENT = (
 )
 
 DEFAULT_TIMEOUT = 30
-SCAN_INTERVAL_HOURS = 1
+SCAN_INTERVAL_HOURS = 720  # 30 days – TownGas data is monthly
 
 # configuration
 CONF_FUEL_ADJUSTMENT_RATE = "fuel_adjustment_rate"

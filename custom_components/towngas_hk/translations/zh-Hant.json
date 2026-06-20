@@ -9,6 +9,13 @@
           "password": "密碼"
         }
       },
+      "otp": {
+        "title": "驗證您的身份",
+        "description": "一個6位數驗證碼已發送至您的註冊電郵地址，請在下方輸入。",
+        "data": {
+          "otp_code": "驗證碼"
+        }
+      },
       "account": {
         "title": "選擇帳戶",
         "description": "找到多個帳戶。請選擇一個。",
@@ -18,10 +25,22 @@
       },
       "reauth": {
         "title": "重新驗證中華煤氣帳戶",
-        "description": "您的中華煤氣登入資料已到期，請重新輸入。",
+        "description": "您的中華煤氣登入資料已到期，請重新驗證。",
+        "data": {}
+      },
+      "reauth_form": {
+        "title": "重新驗證中華煤氣帳戶",
+        "description": "您儲存的登入資料無效，請輸入您的中華煤氣 eService 登入憑證。",
         "data": {
           "username": "使用者名稱 (登入 ID)",
           "password": "密碼"
+        }
+      },
+      "reauth_otp": {
+        "title": "使用驗證碼重新驗證",
+        "description": "一個6位數驗證碼已發送至您的註冊電郵地址，請在下方輸入。",
+        "data": {
+          "otp_code": "驗證碼"
         }
       }
     },
@@ -29,6 +48,9 @@
       "cannot_connect": "無法連線至中華煤氣 eService。",
       "invalid_auth": "無效的使用者名稱或密碼。",
       "cannot_get_token": "無法從中華煤氣取得安全權杖。",
+      "otp_invalid": "驗證碼無效，請重試。",
+      "otp_expired": "驗證碼已過期，已發送新的驗證碼。",
+      "otp_send_failed": "無法發送驗證碼，請重試。",
       "unknown": "發生未預期的錯誤。請檢查 Home Assistant 日誌。"
     },
     "abort": {

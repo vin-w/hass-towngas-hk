@@ -114,6 +114,7 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         self._username = username
         self._password = password
         self.account_no = account_no
+        self._csrf_token: str | None = None  # cached between polls
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -143,29 +144,29 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
             raise UpdateFailed("Could not extract CSRF token from Towngas login page")
         return token
 
-    async def _login(self, csrf_token: str) -> str:
+    async def _login_raw(self, csrf_token: str) -> dict:
+        """POST credentials and return the full JSON response body.
+
+        Returns ``{email, csrfToken}`` on success or ``{guid, sessionToken}``
+        when OTP verification is required.
+        """
         async with asyncio.timeout(DEFAULT_TIMEOUT):
             resp = await self._session.post(
                 LOGIN_API,
                 headers={
                     **COMMON_HEADERS,
                     "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    "requestverificationtoken": csrf_token,
+                    "RequestVerificationToken": csrf_token,
                 },
                 data={
                     "LoginID": self._username,
-                    "UserName": self._username,
                     "password": self._password,
-                    "Password": self._password,
                     "Language": "en",
                 },
             )
             resp.raise_for_status()
             body = await resp.json(content_type=None)
-        if not body.get("email"):
-            raise UpdateFailed("Towngas login failed - invalid credentials")
-        _LOGGER.debug("Towngas logged in as %s", body["email"])
-        return body.get("csrfToken", csrf_token)
+        return body
 
     async def _fetch_meter(self, csrf_token: str, data: TownGasData) -> None:
         """
@@ -339,12 +340,41 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         """Fetch all data - called by DataUpdateCoordinator on schedule."""
         data = TownGasData()
         try:
-            csrf_token = await self._get_csrf_token()
-            csrf_token = await self._login(csrf_token)
+            # Step 1: try cached session
+            if self._csrf_token:
+                try:
+                    await asyncio.gather(
+                        self._fetch_meter(self._csrf_token, data),
+                        self._fetch_billing(self._csrf_token, data),
+                        self._fetch_notice(self._csrf_token, data),
+                    )
+                    return data
+                except (aiohttp.ClientError, UpdateFailed):
+                    _LOGGER.debug("Cached session expired, re-logging in")
+                    self._csrf_token = None
+
+            # Step 2: re-login from scratch
+            page_token = await self._get_csrf_token()
+            body = await self._login_raw(page_token)
+
+            if body.get("guid"):
+                # OTP required — can't handle silently, trigger reauth
+                self._csrf_token = None
+                self.async_config_entry_login_failed()
+                raise UpdateFailed("OTP verification required — reauth triggered")
+
+            if not body.get("email"):
+                raise UpdateFailed("Towngas login failed - invalid credentials")
+
+            _LOGGER.debug("Towngas logged in as %s", body["email"])
+            new_csrf = body.get("csrfToken", page_token)
+            self._csrf_token = new_csrf
+
+            # Step 3: fetch data with fresh session
             await asyncio.gather(
-                self._fetch_meter(csrf_token, data),
-                self._fetch_billing(csrf_token, data),
-                self._fetch_notice(csrf_token, data),
+                self._fetch_meter(new_csrf, data),
+                self._fetch_billing(new_csrf, data),
+                self._fetch_notice(new_csrf, data),
             )
         except UpdateFailed:
             raise

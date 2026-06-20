@@ -9,6 +9,13 @@
           "password": "Password"
         }
       },
+      "otp": {
+        "title": "Verify Your Identity",
+        "description": "A 6-digit verification code has been sent to your registered email address. Please enter it below.",
+        "data": {
+          "otp_code": "Verification Code"
+        }
+      },
       "account": {
         "title": "Select Account",
         "description": "Multiple accounts found. Please select one.",
@@ -18,10 +25,22 @@
       },
       "reauth": {
         "title": "Re-authenticate Towngas Account",
-        "description": "Your Towngas credentials have expired. Please enter them again.",
+        "description": "Your Towngas credentials have expired. Please re-authenticate.",
+        "data": {}
+      },
+      "reauth_form": {
+        "title": "Re-authenticate Towngas Account",
+        "description": "Your stored credentials are invalid. Please enter your Towngas eService login credentials.",
         "data": {
           "username": "Username (Login ID)",
           "password": "Password"
+        }
+      },
+      "reauth_otp": {
+        "title": "Re-authenticate with OTP",
+        "description": "A 6-digit verification code has been sent to your registered email address. Please enter it below.",
+        "data": {
+          "otp_code": "Verification Code"
         }
       }
     },
@@ -29,6 +48,9 @@
       "cannot_connect": "Failed to connect to Towngas eService.",
       "invalid_auth": "Invalid username or password.",
       "cannot_get_token": "Could not retrieve security token from Towngas.",
+      "otp_invalid": "Invalid verification code. Please try again.",
+      "otp_expired": "Verification code expired. A new code has been sent.",
+      "otp_send_failed": "Failed to send verification code. Please try again.",
       "unknown": "Unexpected error. Check Home Assistant logs."
     },
     "abort": {
