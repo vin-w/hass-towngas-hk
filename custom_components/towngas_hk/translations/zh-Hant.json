@@ -60,22 +60,17 @@
   },
   "entity": {
     "sensor": {
+      "consumption": { "name": "本月用量" },
+      "consumption_units": { "name": "本月用量 (度數)" },
+      "meter_reading": { "name": "煤氣錶讀數" },
+      "reading_type": { "name": "讀數類型" },
+      "reading_date": { "name": "讀數日期" },
+      "latest_reading_text": { "name": "最新錶讀數" },
+      "tariff_estimate": { "name": "估計煤氣費" },
       "account_no": { "name": "帳戶號碼" },
       "balance": { "name": "帳戶結餘" },
       "bill_amount": { "name": "最近一期賬單金額" },
-      "bill_due_date": { "name": "賬單到期日" },
-      "current_month_code": { "name": "本月代碼" },
-      "current_usage_mj": { "name": "本月用量" },
-      "current_usage_unit": { "name": "本月度數" },
-      "next_month_code": { "name": "下月代碼" },
-      "next_estimate_mj": { "name": "下月估計用量" },
-      "next_estimate_unit": { "name": "下月估計度數" },
-      "next_estimate_tariff": { "name": "下月估計煤氣費" }
-    },
-    "binary_sensor": {
-      "current_month_usage_is_estimate": { "name": "本月使用量為估計值" },
-      "next_month_usage_is_estimate": { "name": "下月使用量為估計值" },
-      "overdue": { "name": "逾期未繳" }
+      "bill_due_date": { "name": "賬單到期日" }
     }
   }
 }

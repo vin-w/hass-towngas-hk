@@ -1,7 +1,7 @@
 {
   "domain": "towngas_hk",
   "name": "Hong Kong Towngas",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "config_flow": true,
   "documentation": "https://github.com/vin-w/hass-towngas-hk",
   "issue_tracker": "https://github.com/vin-w/hass-towngas-hk/issues",

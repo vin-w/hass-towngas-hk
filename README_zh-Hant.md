@@ -6,14 +6,17 @@
 
 香港中華煤氣 Home Assistant 自訂整合，用於透過 eService 門戶監控您的煤氣用量和帳單。
 
+<!-- TODO: 請重新截圖 -->
 ![卡片範例](docs/images/towngas-card.png)
 
+<!-- TODO: 請重新截圖 -->
 ![提醒範例](docs/images/notification_zh-Hant.jpeg)
 
 ## 特色 ⭐
 
-- 🔥 現月與次月煤氣用量及度數（實測或估計）
-- 💰 帳單歷史（HKD）
+- 🔥 每月煤氣用量（MJ 及度數）
+- 📊 累計煤氣錶讀數
+- 💰 根據實際用量及當前燃料調整費率計算估計煤氣費
 - 👥 支援多個中華煤氣帳戶
 - 📊 相容 Home Assistant 能源儀表板
 - 🧩 UI 設定（無需 YAML）
@@ -41,41 +44,41 @@
 
 每個已設定的中華煤氣帳戶將以**裝置**形式新增，包含以下實體：
 
-| 實體 | 類型 | 單位 | 描述 |
-|------|------|------|------|
-| `sensor.towngas_hk_{account}_current_usage_mj` | 感測器 | MJ | 當月用量（最後抄表） |
-| `sensor.towngas_hk_{account}_current_usage_unit` | 感測器 | 度數 | 當月度數（抄表顯示） |
-| `sensor.towngas_hk_{account}_next_estimate_mj` | 感測器 | MJ | 下月估計用量 |
-| `sensor.towngas_hk_{account}_next_estimate_unit` | 感測器 | 度數 | 下月估計度數 |
-| `sensor.towngas_hk_{account}_next_estimate_tariff` | 感測器 | HKD | 下月估計煤氣費 |
-| `sensor.towngas_hk_{account}_account_no` | 感測器 | — | 中華煤氣帳戶號碼 |
-| `sensor.towngas_hk_{account}_current_month_code` | 感測器 | — | 機器可讀的本月代碼（`YYYY-MM`） |
-| `sensor.towngas_hk_{account}_next_month_code` | 感測器 | — | 機器可讀的下月代碼（`YYYY-MM`） |
-| `binary_sensor.towngas_hk_{account}_current_month_usage_is_estimate` | 二元感測器 | — | 若當月數值為估計則為 `on` |
-| `binary_sensor.towngas_hk_{account}_next_month_usage_is_estimate` | 二元感測器 | — | 若下月數值為估計則為 `on` |
-| `sensor.towngas_hk_{account}_balance` | 感測器 | HKD | 帳戶結餘 |
-| `sensor.towngas_hk_{account}_bill_amount` | 感測器 | HKD | 最近一期賬單金額 |
-| `sensor.towngas_hk_{account}_bill_due_date` | 感測器 | 日期 | 賬單到期日 |
-| `binary_sensor.towngas_hk_{account}_overdue` | 二元感測器 | — | 逾期未繳時顯示為「問題」 |
+| 實體 | 單位 | 描述 |
+|------|------|------|
+| `sensor.towngas_hk_{account}_consumption` | MJ | 本月煤氣用量 |
+| `sensor.towngas_hk_{account}_consumption_units` | 度數 | 本月用量（度數） |
+| `sensor.towngas_hk_{account}_meter_reading` | 度數 | 累計煤氣錶讀數 |
+| `sensor.towngas_hk_{account}_reading_type` | — | 讀數類型：Remote / Actual / Estimate |
+| `sensor.towngas_hk_{account}_reading_date` | 日期 | 最新讀數日期 |
+| `sensor.towngas_hk_{account}_latest_reading_text` | — | 預先格式化的最新讀數資訊（如有） |
+| `sensor.towngas_hk_{account}_tariff_estimate` | HKD | 根據最新用量計算的估計煤氣費 |
+| `sensor.towngas_hk_{account}_account_no` | — | 中華煤氣帳戶號碼 |
+| `sensor.towngas_hk_{account}_balance` | HKD | 帳戶結餘 |
+| `sensor.towngas_hk_{account}_bill_amount` | HKD | 最近一期賬單金額 |
+| `sensor.towngas_hk_{account}_bill_due_date` | 日期 | 賬單到期日 |
 
-### 屬性（由兩個用量感測器共用）
-
-`sensor.towngas_hk_{account}_current_usage_mj/_unit` 和
-`sensor.towngas_hk_{account}_next_estimate_mj_unit` 均提供下列簡潔屬性：
+### `consumption` 感測器屬性
 
 | 屬性 | 描述 |
 |------|------|
-| `month` | 感測器值所屬之月份字串（例如「Feb 2026」） |
-| `is_estimate` | 若該數值為預估（非實際抄表）則為 True |
+| `reading_type` | Remote / Actual / Estimate |
+| `reading_date` | 讀數的 ISO 日期 |
+| `meter_reading` | 累計錶讀數（度數） |
+| `consumption_units` | 原始用量（度數） |
+| `has_prediction` | 中華煤氣是否顯示預測用量 |
+| `latest_reading_text` | API 提供的預先格式化文字 |
 
-### 燃料調整費率輔助輸入
+### `tariff_estimate` 感測器屬性
 
-安裝整合時會自動建立一個名為 `Towngas <帳戶> Fuel Adjust Rate` 的
-`input_number` 輔助實體。預設值為 **4.52 仙/MJ**，可至「設定 → 設備與
-服務 → 輔助實體」修改。費率變更後，下月煤氣費感測器會使用該值計算；
-如果輔助實體不存在，則採用預設費率。
+| 屬性 | 描述 |
+|------|------|
+| `consumption_mj` | 用於計算的用量（MJ） |
+| `fuel_rate_cents` | 當前燃料調整費率（仙/MJ） |
+| `tariff_source` | 官方收費標準頁面 URL |
+| `tariff_effective_date` | 收費標準最後更新日期 |
 
-### 屬性（`sensor.towngas_hk_{account}_balance`）
+### `balance` 感測器屬性
 
 | 屬性 | 描述 |
 |------|------|
@@ -84,6 +87,13 @@
 | `ibill` | 是否已登記電子賬單 |
 | `account_status` | 帳戶狀態（`A` = 有效） |
 
+### 燃料調整費率輔助輸入
+
+安裝整合時會自動建立一個名為 `Towngas <帳戶> Fuel Adjust Rate` 的
+`input_number` 輔助實體。預設值為 **4.52 仙/MJ**，可至「設定 → 設備與
+服務 → 輔助實體」修改。費率變更後，估計煤氣費感測器會使用該值計算；
+如果輔助實體不存在，則採用預設費率。
+
 ## 用量與度數說明
 
 - **用量 (MJ)** 指的是每次抄表時顯示的煤氣熱能消耗，以兆焦為單位，
@@ -91,15 +101,21 @@
 - **度數** 是按每 48 MJ 計算的傳統電錶式顯示單位，也是中華煤氣
   在網站與紙本賬單上使用的標準。
 
+轉換公式：`度數 × 48 = MJ`
+
 ### 帳單周期說明
 
-當月用量感測器代表**最後完成的抄表周期**。中華煤氣通常在當月初進行抄表，因此在 **2026-02-27** 時，二月的數據不會改變。二月初至月尾為三月的估計值.
+當月用量感測器代表**最後完成的抄表周期**。中華煤氣通常在當月初進行抄表。
+整合使用 API 的 `historyList` 作為主要數據來源，該列表始終包含最新數據
+（包括在 chartBarList 更新前的手動抄表）。
 
 官方資源：
-- 收費標準：https://www.towngas.com/tc/Household/Customer-Services/Tariff
+- 收費標準：https://www.towngas.com/en/Household/Customer-Services/Tariff
 - 如何閱讀煤氣單：https://www.towngas.com/media/getmedia/2f4237d6-bd4c-4f13-9b7c-50b009183468/how-to-read-bill_chi.pdf
 
 ## 儀表板範例 🖥️
+
+<!-- TODO: 請重新截圖 -->
 
 您可以在任何儀表板中新增簡單的中華煤氣卡片堆疊：
 
@@ -109,24 +125,25 @@ cards:
   - type: history-graph
     title: 煤氣使用量（月度）
     entities:
-      - entity: sensor.towngas_hk_{account}_current_usage_mj
-        name: 當月 (MJ)
-      - entity: sensor.towngas_hk_{account}_next_estimate_mj
-        name: 下月估計 (MJ)
+      - entity: sensor.towngas_hk_{account}_consumption
+        name: 本月用量 (MJ)
     hours_to_show: 720
   - type: entities
     state_color: true
     entities:
-      - entity: binary_sensor.towngas_hk_{account}_overdue
-        name: 逾期帳單
-      - entity: sensor.towngas_hk_{account}_bill_due_date
-      - entity: sensor.towngas_hk_{account}_bill_amount
+      - entity: sensor.towngas_hk_{account}_consumption
+      - entity: sensor.towngas_hk_{account}_consumption_units
+      - entity: sensor.towngas_hk_{account}_meter_reading
+      - entity: sensor.towngas_hk_{account}_reading_type
+      - entity: sensor.towngas_hk_{account}_reading_date
+      - entity: sensor.towngas_hk_{account}_tariff_estimate
 ```
 
 ## 能源儀表板 ⚡
 
-前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增 `sensor.towngas_hk_{account}_current_usage_mj`。
+前往 **設定 → 儀表板 → 能源**，在 **煤氣消耗** 下新增 `sensor.towngas_hk_{account}_consumption`。
 
+<!-- TODO: 請重新截圖 -->
 ![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
 
 ## 自動化藍圖 🔁
@@ -147,7 +164,6 @@ cards:
 
 當感測器狀態變為 **on** 時，建立好的自動化會被觸發，
 向所選的通知目標發送標題及訊息。
-
 
 ## 需求 📦
 

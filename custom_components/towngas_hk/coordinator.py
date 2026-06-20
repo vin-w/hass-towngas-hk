@@ -22,6 +22,7 @@ from .const import (
     METER_API,
     NOTICE_API,
     SCAN_INTERVAL_HOURS,
+    UNITS_TO_MJ,
     USER_AGENT,
 )
 
@@ -66,17 +67,15 @@ COMMON_HEADERS = {
 class TownGasData:
     """All data fetched for one Towngas account."""
 
-    # Gas meter
-    current_month_consumption: float | None = None
-    next_month_consumption: float | None = None
-    # month strings associated with the above values ("Feb 2026" etc.)
-    current_month: str | None = None
-    next_month: str | None = None
-    # flags to indicate whether the month value was estimated
-    is_current_month_estimate: bool = False
-    is_next_month_estimate: bool = False
-    readings: list[dict] = field(default_factory=list)
-    bills: list[dict] = field(default_factory=list)
+    # Latest meter reading from historyList[0]
+    latest_consumption_mj: float | None = None     # consumption × 48
+    latest_consumption_units: int | None = None     # raw units from API
+    latest_meter_reading: int | None = None         # cumulative meter total
+    latest_reading_type: str = ""                   # Remote / Actual / Estimate
+    latest_reading_date: datetime.date | None = None
+    latest_reading_text: str | None = None          # pre-formatted text from API
+    is_show_latest_reading: bool = False            # isShowLatestMeterReading
+    is_show_prediction: bool = False                # isShowPredictionBar
 
     # Account / billing notice
     current_balance: float | None = None
@@ -121,7 +120,6 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         """DeviceInfo shared by all entities for this account."""
         return DeviceInfo(
             identifiers={(DOMAIN, self.account_no)},
-            # match the config entry naming convention
             name=f"Towngas HK Account {self.account_no}",
             model="eService",
             entry_type="service",
@@ -169,38 +167,27 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         return body
 
     async def _fetch_meter(self, csrf_token: str, data: TownGasData) -> None:
-        """
-        Fetch meter statistics and update "data" with current and prediction
-        values.
+        """Fetch meter data and populate TownGasData.
 
-        The response contains a sequence of records in ``chartBarList``.  Each
-        record may provide two months of consumption (``strMonth1``/``strMonth2``
-        and ``consumption1``/``consumption2``) or a forecast entry marked by
-        ``isEstimateMonth`` where ``strPredictionConsumptionMonth`` designates
-        the target month and ``predictionConsumption`` gives the estimated
-        amount.
+        The API returns two main data structures:
 
-        We generate:
+        - ``historyList``: Chronological list of actual monthly meter readings.
+          Each entry has ``meterReading`` (cumulative units), ``consumption``
+          (monthly usage in units, where 1 unit = 48 MJ), ``readingType``
+          (Remote/Actual/Estimate), and ``billingDate``.
 
-        * ``data.readings`` – a chronological list of all values, used by
-          history sensors.
-                * ``data.current_month_consumption`` & ``current_month`` – the
-                    value matched to the current calendar month (or, if none found,
-                    the most recent actual reading).
-                * ``data.next_month_consumption`` & ``next_month`` –
-                    the value matched to the next calendar month.
-                * ``data.is_current_month_estimate`` / ``data.is_next_month_estimate`` –
-                    flags indicating whether the assigned value was taken from a
-          forecast row.
+        - ``chartBarList``: Bi-monthly pairs for chart display, plus a
+          prediction entry (odd-month, ``isEstimateMonth: true``) when
+          available.
 
-        If no matching entry is found for current month, ``current_month_consumption``
-        will be set to the most recent actual reading (or ``0.0`` if the list
-        is empty).  ``next_month_consumption`` defaults to ``0.0`` when no
-        next‑month value is available.  Estimate flags remain ``False`` by
-        default.
+        Priority: ``historyList`` is always more up-to-date than
+        ``chartBarList`` because actual meter reads (e.g. manual reads)
+        appear in historyList before chartBarList updates.
 
-        The logic handles both regular and estimate rows; examples are
-        documented in the class docstring above.
+        Top-level flags:
+        - ``isShowLatestMeterReading``: true when a fresh reading is available
+        - ``isShowPredictionBar``: true when a prediction forecast exists
+        - ``latestMeterReadingText``: pre-formatted string for display
         """
         async with asyncio.timeout(DEFAULT_TIMEOUT):
             resp = await self._session.post(
@@ -216,69 +203,31 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
             resp.raise_for_status()
             raw = await resp.json(content_type=None)
 
-        readings: list[dict] = []
-        latest_actual: float | None = None
+        # --- historyList → primary source for consumption sensor ---
+        history = raw.get("historyList", [])
+        if history:
+            h = history[0]
+            try:
+                data.latest_consumption_units = int(h["consumption"])
+                data.latest_consumption_mj = data.latest_consumption_units * UNITS_TO_MJ
+            except (ValueError, TypeError, KeyError):
+                data.latest_consumption_units = None
+                data.latest_consumption_mj = None
 
-        now = datetime.datetime.now()
-        current_month_str = now.strftime("%b %Y")
-        next_month_dt = (now.replace(day=1) + datetime.timedelta(days=31)).replace(day=1)
-        next_month_str = next_month_dt.strftime("%b %Y")
+            data.latest_meter_reading = h.get("meterReading")
+            data.latest_reading_type = h.get("readingType", "")
 
-        for record in raw.get("chartBarList", []):
-            # process normal consumption entries
-            if record.get("strMonth1") and record.get("consumption1"):
-                val = float(record["consumption1"])
-                readings.append({"time": record["strMonth1"], "mj": val})
-                latest_actual = val
-                if record["strMonth1"] == current_month_str:
-                    data.current_month_consumption = val
-                    data.current_month = current_month_str
-                    data.is_current_month_estimate = False
-                if record["strMonth1"] == next_month_str:
-                    data.next_month_consumption = val
-                    data.next_month = next_month_str
-                    data.is_next_month_estimate = False
-            if record.get("strMonth2") and record.get("consumption2"):
-                val = float(record["consumption2"])
-                readings.append({"time": record["strMonth2"], "mj": val})
-                latest_actual = val
-                if record["strMonth2"] == current_month_str:
-                    data.current_month_consumption = val
-                    data.current_month = current_month_str
-                    data.is_current_month_estimate = False
-                if record["strMonth2"] == next_month_str:
-                    data.next_month_consumption = val
-                    data.next_month = next_month_str
-                    data.is_next_month_estimate = False
+            billing_date = h.get("billingDate")
+            if billing_date:
+                try:
+                    data.latest_reading_date = datetime.date.fromisoformat(billing_date[:10])
+                except (ValueError, AttributeError):
+                    data.latest_reading_date = None
 
-            # process forecast entry
-            if record.get("isEstimateMonth"):
-                pred_month = record.get("strPredictionConsumptionMonth")
-                if record.get("predictionConsumption") and pred_month:
-                    val = float(record["predictionConsumption"])
-                    readings.append({"time": pred_month, "mj": val, "estimated": True})
-                    if pred_month == current_month_str:
-                        data.current_month_consumption = val
-                        data.current_month = pred_month
-                        data.is_current_month_estimate = True
-                    elif pred_month == next_month_str:
-                        data.next_month_consumption = val
-                        data.next_month = pred_month
-                        data.is_next_month_estimate = True
-
-        readings.reverse()
-        data.readings = readings
-
-        # if no explicit match for current month, fall back to most recent
-        # actual reading (latest_actual) or zero if no data at all
-        if data.current_month_consumption is None:
-            if latest_actual is not None:
-                data.current_month_consumption = latest_actual
-            else:
-                data.current_month_consumption = 0.0
-        # ensure we always have numeric next-month value (0 if not found)
-        if data.next_month_consumption is None:
-            data.next_month_consumption = 0.0
+        # --- Top-level flags ---
+        data.is_show_latest_reading = raw.get("isShowLatestMeterReading", False)
+        data.is_show_prediction = raw.get("isShowPredictionBar", False)
+        data.latest_reading_text = raw.get("latestMeterReadingText")
 
     async def _fetch_billing(self, csrf_token: str, data: TownGasData) -> None:
         async with asyncio.timeout(DEFAULT_TIMEOUT):
@@ -297,7 +246,16 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
             except (ValueError, AttributeError):
                 total = 0.0
             bills.append({"time": record["strBillDate"], "total": total})
-        data.bills = bills
+
+        # Use latest bill for sensors
+        if bills:
+            data.bill_amount_due = bills[0]["total"]
+            bill_date = bills[0]["time"]
+            if bill_date:
+                try:
+                    data.bill_due_date = datetime.date.fromisoformat(bill_date[:10])
+                except (ValueError, AttributeError):
+                    data.bill_due_date = None
 
     async def _fetch_notice(self, csrf_token: str, data: TownGasData) -> None:
         async with asyncio.timeout(DEFAULT_TIMEOUT):
@@ -318,19 +276,11 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
                 return None
 
         data.current_balance = _parse_amount(raw.get("currentAccountBalance"))
-        data.bill_amount_due = _parse_amount(raw.get("billAmountDue"))
         data.is_overdue = raw.get("isOverdueBill", "N") == "Y"
         data.is_auto_pay = raw.get("isAutoPay", "N") == "Y"
         data.is_ibill = bool(raw.get("isIbillService", False))
         data.account_status = raw.get("accountNoStatus", "")
         data.balance_updated = raw.get("strUpdatedDate", "")
-
-        raw_due = raw.get("billDueDate")
-        if raw_due:
-            try:
-                data.bill_due_date = datetime.date.fromisoformat(raw_due[:10])
-            except ValueError:
-                data.bill_due_date = None
 
     # ------------------------------------------------------------------
     # DataUpdateCoordinator entry point

@@ -6,14 +6,17 @@ English | [繁體中文](./README_zh-Hant.md)
 
 A Home Assistant custom integration for monitoring your [Hong Kong Towngas](https://eservice.towngas.com) gas consumption and billing via the eService portal.
 
+<!-- TODO: capture new screenshot -->
 ![Card example](docs/images/towngas-card.png)
 
+<!-- TODO: capture new screenshot -->
 ![Notification example](docs/images/notification_en.jpeg)
 
 ## Features ⭐
 
-- 🔥 Current and next month gas usage in MJ or Unit (actual or estimated)
-- 💰 Billing history with amounts in HKD
+- 🔥 Monthly gas consumption in MJ and meter units (度數)
+- 📊 Cumulative meter reading (煤氣錶讀數)
+- 💰 Estimated tariff based on actual usage and current fuel rate
 - 👥 Supports multiple Towngas accounts
 - 📊 Compatible with the Home Assistant Energy Dashboard
 - 🧩 Setup via UI (no YAML required)
@@ -41,43 +44,41 @@ Or manually add `https://github.com/vin-w/hass-towngas-hk` as a Custom Repositor
 
 Each configured Towngas account is added as a **device** (named `Towngas HK Account <number>`) with the following entities:
 
-| Entity ID | Type | Unit | Description |
-|-----------|------|------|-------------|
-| `sensor.towngas_hk_{account}_current_usage_mj` | Sensor | MJ | Current month usage (last meter read) |
-| `sensor.towngas_hk_{account}_current_usage_unit` | Sensor | 度數 | Current month unit (meter reading) |
-| `sensor.towngas_hk_{account}_next_estimate_mj` | Sensor | MJ | Next month estimated usage |
-| `sensor.towngas_hk_{account}_next_estimate_unit` | Sensor | 度數 | Next month estimated unit |
-| `sensor.towngas_hk_{account}_next_estimate_tariff` | Sensor | HKD | Next month estimated tariff (computed)
-| `sensor.towngas_hk_{account}_account_no` | Sensor | — | Towngas account number |
-| `sensor.towngas_hk_{account}_current_month_code` | Sensor | — | Machine-friendly month code for current month (`YYYY-MM`) |
-| `sensor.towngas_hk_{account}_next_month_code` | Sensor | — | Machine-friendly month code for next month (`YYYY-MM`) |
-| `binary_sensor.towngas_hk_{account}_current_month_usage_is_estimate` | Binary Sensor | — | `on` if the current-month usage was estimated |
-| `binary_sensor.towngas_hk_{account}_next_month_usage_is_estimate` | Binary Sensor | — | `on` if the next-month usage is estimated |
-| `sensor.towngas_hk_{account}_balance` | Sensor | HKD | Current account balance |
-| `sensor.towngas_hk_{account}_bill_amount` | Sensor | HKD | Latest bill amount due |
-| `sensor.towngas_hk_{account}_bill_due_date` | Sensor | Date | Bill payment due date |
-| `binary_sensor.towngas_hk_{account}_overdue` | Binary Sensor | — | `on` if bill is overdue (shows as Problem in HA) |
+| Entity ID | Unit | Description |
+|-----------|------|-------------|
+| `sensor.towngas_hk_{account}_consumption` | MJ | Monthly gas consumption (最新本月用量) |
+| `sensor.towngas_hk_{account}_consumption_units` | Units | Monthly consumption in meter units (本月度數) |
+| `sensor.towngas_hk_{account}_meter_reading` | Units | Cumulative meter reading (煤氣錶讀數) |
+| `sensor.towngas_hk_{account}_reading_type` | — | How reading was obtained: Remote / Actual / Estimate |
+| `sensor.towngas_hk_{account}_reading_date` | Date | When the latest reading was taken |
+| `sensor.towngas_hk_{account}_latest_reading_text` | — | Pre-formatted latest reading info (when available) |
+| `sensor.towngas_hk_{account}_tariff_estimate` | HKD | Estimated bill based on latest consumption |
+| `sensor.towngas_hk_{account}_account_no` | — | Towngas account number |
+| `sensor.towngas_hk_{account}_balance` | HKD | Current account balance |
+| `sensor.towngas_hk_{account}_bill_amount` | HKD | Latest bill amount due |
+| `sensor.towngas_hk_{account}_bill_due_date` | Date | Bill payment due date |
 
-### Attributes (shared by both usage sensors)
-
-Both `sensor.towngas_hk_{account}_current_usage_mj/_unit` and
-`sensor.towngas_hk_{account}_next_estimate_mj/_unit` expose a minimal attribute set useful for templates and the energy dashboard:
+### Attributes on `consumption` sensor
 
 | Attribute | Description |
 |-----------|-------------|
-| `month` | Month string the sensor value applies to (e.g. "Feb 2026") |
-| `is_estimate` | True if the reported value is an estimated (forecast) value |
+| `reading_type` | Remote / Actual / Estimate |
+| `reading_date` | ISO date of the reading |
+| `meter_reading` | Cumulative meter total (units) |
+| `consumption_units` | Raw consumption in units |
+| `has_prediction` | Whether Towngas shows a prediction forecast |
+| `latest_reading_text` | Pre-formatted text from API |
 
-### Attributes (`sensor.towngas_hk_{account}_balance`)
+### Attributes on `tariff_estimate` sensor
 
-### Fuel adjustment helper
+| Attribute | Description |
+|-----------|-------------|
+| `consumption_mj` | MJ used for calculation |
+| `fuel_rate_cents` | Current fuel adjustment rate (¢/MJ) |
+| `tariff_source` | Official tariff page URL |
+| `tariff_effective_date` | When rates were last updated |
 
-An `input_number` helper named `Towngas <account> Fuel Adjust Rate` is created
-when the integration is set up. It defaults to **4.52 ¢/MJ** and can be edited
-via **Settings → Devices & Services → Helpers**. The tariff sensor reads this
-value to compute next-month charges; if the helper is missing the default rate
-is used.
-
+### Attributes on `balance` sensor
 
 | Attribute | Description |
 |-----------|-------------|
@@ -86,47 +87,59 @@ is used.
 | `ibill` | Whether iBill (e-statement) is enrolled |
 | `account_status` | Account status (`A` = Active) |
 
+### Fuel adjustment helper
+
+An `input_number` helper named `Towngas <account> Fuel Adjust Rate` is created
+when the integration is set up. It defaults to **4.52 ¢/MJ** and can be edited
+via **Settings → Devices & Services → Helpers**. The tariff sensor reads this
+value to compute charges; if the helper is missing the default rate is used.
+
 ## Usage and Meter Units Explanation
 
 - **Usage (MJ)** refers to the gas thermal energy consumption shown at each meter reading, measured in megajoules (MJ)—the actual billed consumption value.
 - **Meter Units** are the traditional meter-style display calculated as every 48 MJ per unit, which is Towngas's standard on their website and paper bills.
 
+The conversion is: `units × 48 = MJ`
+
 ## Billing Cycle Explanation
 
-The monthly usage sensor represents the **most recently completed meter reading cycle**. Towngas typically reads meters at the beginning of each month, so on **2026-02-27**, February's data is finalized. Early February to month-end shows estimates for March.
+The monthly usage sensor represents the **most recently completed meter reading cycle**. Towngas typically reads meters at the beginning of each month. The integration uses `historyList` from the API which always has the latest data (including manual reads before chartBarList updates).
 
 **Official resources:**
-- Tariff rates: https://www.towngas.com/tc/Household/Customer-Services/Tariff
+- Tariff rates: https://www.towngas.com/en/Household/Customer-Services/Tariff
 - How to read your gas bill: https://www.towngas.com/media/getmedia/2f4237d6-bd4c-4f13-9b7c-50b009183468/how-to-read-bill_chi.pdf
 
 ## Dashboard example 🖥️
 
+<!-- TODO: capture new screenshot -->
+
 You can add a simple Towngas card stack to any dashboard:
 
 ```yaml
- type: vertical-stack
- cards:
-   - type: history-graph
-     title: Towngas Usage (Monthly)
-     entities:
-       - entity: sensor.towngas_hk_{account}_current_usage_mj
-         name: Current month (MJ)
-       - entity: sensor.towngas_hk_{account}_next_estimate_mj
-         name: Next month est. (MJ)
-     hours_to_show: 720
-   - type: entities
-     state_color: true
-     entities:
-       - entity: binary_sensor.towngas_hk_{account}_overdue
-         name: Overdue bill
-       - entity: sensor.towngas_hk_{account}_bill_due_date
-       - entity: sensor.towngas_hk_{account}_bill_amount
+type: vertical-stack
+cards:
+  - type: history-graph
+    title: Towngas Usage (Monthly)
+    entities:
+      - entity: sensor.towngas_hk_{account}_consumption
+        name: Consumption (MJ)
+    hours_to_show: 720
+  - type: entities
+    state_color: true
+    entities:
+      - entity: sensor.towngas_hk_{account}_consumption
+      - entity: sensor.towngas_hk_{account}_consumption_units
+      - entity: sensor.towngas_hk_{account}_meter_reading
+      - entity: sensor.towngas_hk_{account}_reading_type
+      - entity: sensor.towngas_hk_{account}_reading_date
+      - entity: sensor.towngas_hk_{account}_tariff_estimate
 ```
 
 ## Energy Dashboard ⚡
 
-Go to **Settings → Dashboards → Energy** and add `sensor.towngas_hk_{account}_current_usage_mj` (in MJ) under **Gas consumption**.
+Go to **Settings → Dashboards → Energy** and add `sensor.towngas_hk_{account}_consumption` (in MJ) under **Gas consumption**.
 
+<!-- TODO: capture new screenshot -->
 ![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
 
 ## Automation Blueprint 🔁
@@ -149,7 +162,6 @@ inputs:
 
 The built automation will fire when the sensor turns **on**, sending a
 title/message to the chosen notify target.
-
 
 ## Requirements 📦
 
