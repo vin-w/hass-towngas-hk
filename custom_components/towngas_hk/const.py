@@ -3,6 +3,9 @@
 DOMAIN = "towngas_hk"
 
 CONF_ACCOUNT_NO = "account_no"
+CONF_CSRF_TOKEN = "csrf_token"
+CONF_BILLING_DATE = "billing_date"
+CONF_NEXT_REFRESH = "next_refresh"
 
 BASE_URL = "https://eservice.towngas.com"
 LOGIN_PAGE = f"{BASE_URL}/en/Home/Index"
@@ -20,7 +23,8 @@ USER_AGENT = (
 )
 
 DEFAULT_TIMEOUT = 30
-SCAN_INTERVAL_HOURS = 720  # 30 days – TownGas data is monthly
+# Check every 24 hours; smart refresh skips if now < next_refresh
+SCAN_INTERVAL_HOURS = 24
 
 # Gas meter conversion factor
 # Source: https://www.towngas.com/en/Household/Customer-Services/Tariff

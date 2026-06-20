@@ -9,12 +9,16 @@ import re
 from dataclasses import dataclass, field
 
 import aiohttp
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
     BILLING_API,
+    CONF_BILLING_DATE,
+    CONF_CSRF_TOKEN,
+    CONF_NEXT_REFRESH,
     DEFAULT_TIMEOUT,
     DOMAIN,
     LOGIN_API,
@@ -57,6 +61,22 @@ COMMON_HEADERS = {
     "pragma": "no-cache",
     "cache-control": "no-cache",
 }
+
+
+def _calc_next_refresh(billing_date: datetime.date) -> datetime.datetime:
+    """Calculate next refresh time as billingDate + 1 month.
+
+    Towngas reads meters monthly, so next read should happen around the
+    same time next month. We add 1 month to the last billing date.
+    """
+    month = billing_date.month + 1
+    year = billing_date.year
+    if month > 12:
+        month = 1
+        year += 1
+    # Handle months with fewer days (e.g., Jan 31 + 1 month → Feb 28)
+    day = min(billing_date.day, 28)
+    return datetime.datetime(year, month, day, 0, 0, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -102,6 +122,7 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         username: str,
         password: str,
         account_no: str,
+        config_entry: ConfigEntry,
     ) -> None:
         super().__init__(
             hass,
@@ -113,7 +134,54 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
         self._username = username
         self._password = password
         self.account_no = account_no
-        self._csrf_token: str | None = None  # cached between polls
+        self._config_entry = config_entry
+
+        # Load persisted state
+        self._csrf_token: str | None = config_entry.data.get(CONF_CSRF_TOKEN)
+        self._billing_date: datetime.date | None = self._parse_date(
+            config_entry.data.get(CONF_BILLING_DATE)
+        )
+        self._next_refresh: datetime.datetime | None = self._parse_datetime(
+            config_entry.data.get(CONF_NEXT_REFRESH)
+        )
+
+    @staticmethod
+    def _parse_date(val: str | None) -> datetime.date | None:
+        if not val:
+            return None
+        try:
+            return datetime.date.fromisoformat(val)
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _parse_datetime(val: str | None) -> datetime.datetime | None:
+        if not val:
+            return None
+        try:
+            return datetime.datetime.fromisoformat(val)
+        except (ValueError, TypeError):
+            return None
+
+    def _persist_state(self, data: TownGasData) -> None:
+        """Save state to config_entry.data for survival across restarts."""
+        updates: dict = {}
+
+        if self._csrf_token:
+            updates[CONF_CSRF_TOKEN] = self._csrf_token
+
+        if data.latest_reading_date:
+            self._billing_date = data.latest_reading_date
+            updates[CONF_BILLING_DATE] = data.latest_reading_date.isoformat()
+
+        if self._billing_date:
+            self._next_refresh = _calc_next_refresh(self._billing_date)
+            updates[CONF_NEXT_REFRESH] = self._next_refresh.isoformat()
+
+        if updates:
+            self.hass.config_entries.async_update_entry(
+                self._config_entry, data={**self._config_entry.data, **updates}
+            )
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -287,7 +355,24 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
     # ------------------------------------------------------------------
 
     async def _async_update_data(self) -> TownGasData:
-        """Fetch all data - called by DataUpdateCoordinator on schedule."""
+        """Fetch all data - called by DataUpdateCoordinator every 24h.
+
+        Smart refresh logic:
+        1. If now < next_refresh AND we have last data → return cached, skip login
+        2. If fetch is due → try cached CSRF first
+        3. If CSRF fails → fresh login
+        4. After fetch → persist new billingDate and nextRefresh
+        """
+        now = datetime.datetime.now()
+
+        # Step 0: Smart skip — if next_refresh not reached, return cached data
+        if self._next_refresh and now < self._next_refresh and self.data is not None:
+            _LOGGER.debug(
+                "Towngas: skipping fetch, next refresh at %s",
+                self._next_refresh.isoformat(),
+            )
+            return self.data
+
         data = TownGasData()
         try:
             # Step 1: try cached session
@@ -298,6 +383,7 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
                         self._fetch_billing(self._csrf_token, data),
                         self._fetch_notice(self._csrf_token, data),
                     )
+                    self._persist_state(data)
                     return data
                 except (aiohttp.ClientError, UpdateFailed):
                     _LOGGER.debug("Cached session expired, re-logging in")
@@ -326,6 +412,7 @@ class TownGasCoordinator(DataUpdateCoordinator[TownGasData]):
                 self._fetch_billing(new_csrf, data),
                 self._fetch_notice(new_csrf, data),
             )
+            self._persist_state(data)
         except UpdateFailed:
             raise
         except aiohttp.ClientError as err:
