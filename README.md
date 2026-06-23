@@ -146,15 +146,11 @@ Each configured Towngas account is added as a **device** (named `Towngas HK Acco
 
 The estimated tariff is calculated using:
 1. **Tiered gas charges** — per-MJ pricing based on consumption brackets
-2. **Fuel cost adjustment** — variable rate (default: 4.52 ¢/MJ, adjustable via helper)
+2. **Fuel cost adjustment** — variable rate (default: 4.52 ¢/MJ)
 3. **Monthly maintenance charge** — HK$10
 4. **Monthly initial charge** — HK$20 (only if gas charge < $20)
 
 Source: [Towngas Tariff](https://www.towngas.com/en/Household/Customer-Services/Tariff)
-
-### Fuel adjustment helper
-
-The integration uses a fuel adjustment rate (default: **4.52 ¢/MJ**) to estimate bills. This rate changes monthly. You can adjust it via **Settings → Devices & Services → Helpers** — look for `Towngas <account> Fuel Adjust Rate`.
 
 ### Usage and Meter Units
 
