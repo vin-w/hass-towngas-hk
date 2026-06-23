@@ -48,32 +48,41 @@ Towngas requires **OTP (One-Time Password) verification** for every login. This 
 
 ### How data refresh works
 
-| Scenario | What happens |
-|----------|-------------|
-| **Saved password** | Coordinator auto-logins on restart. Data refreshes automatically every 30 days (aligned with monthly billing cycle). |
-| **No saved password** | Cached data is shown until the 30-day refresh interval. After that, you must re-authenticate. |
+Data is fetched once every **30 days** (aligned with monthly billing cycle). Between refreshes, cached data is displayed instantly — no network calls needed.
 
-### When you need to re-authenticate
+On restart, the integration loads cached data immediately. Fresh data is only fetched when the 30-day interval elapses.
 
+### Save password option
+
+During setup and re-authentication, you can tick **"Save password for auto-refresh"**:
+
+| Option | Behaviour |
+|--------|-----------|
+| **Saved** | Password is prefilled on re-authentication — you just confirm and enter OTP |
+| **Not saved** | You must type your password manually each time you re-authenticate |
+
+Both options follow the same 30-day refresh cycle. The difference is only convenience during re-authentication.
+
+### When re-authentication is needed
+
+- **Every 30 days** — when the refresh interval elapses, the coordinator needs fresh credentials
 - **Session expired** — HA shows a "Re-authenticate" notification in Settings → Integrations
-- **Force Refresh** — click the Force Refresh button on the device to manually trigger fresh data
-- **After 30 days** — automatic refresh requires valid credentials
+- **Force Refresh** — click the button to manually trigger fresh data (requires re-auth if session expired)
 
 ### Re-authentication flow
 
-1. Click **Re-authenticate** in the repair notification
-2. Enter your password (pre-filled if saved)
-3. ☐ Tick **Save password for auto-refresh** if you want automatic updates
+1. Click **Re-authenticate** in the repair notification (or click **Force Refresh**)
+2. Enter your password (pre-filled if saved, otherwise type it)
+3. ☐ Tick **Save password for auto-refresh** if you want convenience next time
 4. Enter the **6-digit OTP code** sent to your email
 5. Done — fresh data loaded
 
 ### Without saved password
 
-If you chose not to save your password during setup:
-- Sensors show **cached data** from the last successful fetch
-- After 30 days, cached data is still displayed but no new data is fetched
-- Click **Force Refresh** → enter password → enter OTP → fresh data loaded
-- You can enable "Save password" during re-authentication to avoid this in the future
+If you chose not to save your password:
+- Data refreshes work the same way (30-day cycle)
+- When re-authentication is needed, you must type your password manually
+- You can enable "Save password" during re-authentication to prefill it next time
 
 ---
 
