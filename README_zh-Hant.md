@@ -180,6 +180,8 @@
    - **通知服務** — 選擇您的通知服務（例如 `notify.mobile_app_yourphone`）
 4. 當餘額超過 $0 時，自動化將觸發通知
 
+![通知範例](docs/images/notification_zh-Hant.jpeg)
+
 ---
 
 ## 需求 📦

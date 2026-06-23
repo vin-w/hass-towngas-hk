@@ -180,6 +180,8 @@ A blueprint is included to alert you when your Towngas bill balance exceeds $0 (
    - **Notification Service** — choose your notify service (e.g. `notify.mobile_app_yourphone`)
 4. The automation fires when balance goes above $0
 
+![Notification example](docs/images/notification_en.png)
+
 ---
 
 ## Requirements 📦
