@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -14,7 +14,7 @@ from .coordinator import TownGasCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "binary_sensor"]
+PLATFORMS = [Platform.SENSOR, Platform.BUTTON]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -25,6 +25,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         username=entry.data[CONF_USERNAME],
         password=entry.data[CONF_PASSWORD],
         account_no=entry.data[CONF_ACCOUNT_NO],
+        config_entry=entry,
     )
     await coordinator.async_config_entry_first_refresh()
 

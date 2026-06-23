@@ -3,10 +3,18 @@
     "step": {
       "user": {
         "title": "Hong Kong Towngas",
-        "description": "Enter your Towngas eService login credentials.",
+        "description": "Enter your Towngas eService login credentials.\n\n{error}",
         "data": {
           "username": "Username (Login ID)",
-          "password": "Password"
+          "password": "Password",
+          "save_password": "Save password for auto-refresh"
+        }
+      },
+      "otp": {
+        "title": "Verify Your Identity",
+        "description": "A 6-digit verification code has been sent to {email}.\n\n{error}",
+        "data": {
+          "otp_code": "Verification Code"
         }
       },
       "account": {
@@ -18,17 +26,33 @@
       },
       "reauth": {
         "title": "Re-authenticate Towngas Account",
-        "description": "Your Towngas credentials have expired. Please enter them again.",
+        "description": "Your Towngas credentials have expired. Please re-authenticate.",
+        "data": {}
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Towngas Account",
+        "description": "Your session has expired. Please enter your password to re-authenticate.\n\n{error}",
         "data": {
-          "username": "Username (Login ID)",
-          "password": "Password"
+          "password": "Password",
+          "save_password": "Save password for auto-refresh"
+        }
+      },
+      "reauth_otp": {
+        "title": "Re-authenticate with OTP",
+        "description": "A 6-digit verification code has been sent to {email}.\n\n{error}",
+        "data": {
+          "otp_code": "Verification Code"
         }
       }
     },
     "error": {
+      "api_error": "Error from Towngas server.",
       "cannot_connect": "Failed to connect to Towngas eService.",
       "invalid_auth": "Invalid username or password.",
       "cannot_get_token": "Could not retrieve security token from Towngas.",
+      "otp_invalid": "Invalid verification code. Please try again.",
+      "otp_expired": "Verification code expired. A new code has been sent.",
+      "otp_send_failed": "Failed to send verification code. Please try again.",
       "unknown": "Unexpected error. Check Home Assistant logs."
     },
     "abort": {
@@ -38,21 +62,20 @@
   },
   "entity": {
     "sensor": {
+      "consumption": { "name": "Monthly Consumption" },
+      "consumption_units": { "name": "Monthly Consumption (Units)" },
+      "meter_reading": { "name": "Meter Reading" },
+      "reading_type": { "name": "Reading Type" },
+      "reading_date": { "name": "Reading Date" },
+      "latest_reading_text": { "name": "Latest Text" },
+      "tariff_estimate": { "name": "Estimated Tariff" },
       "account_no": { "name": "Account Number" },
-      "bill_amount_due": { "name": "Bill Amount Due" },
-      "bill_due_date": { "name": "Bill Due Date" },
-      "current_balance": { "name": "Current Balance" },
-      "current_month_code": { "name": "Current Month Code" },
-      "current_month_usage_mj": { "name": "Current Month Usage" },
-      "current_month_usage_unit": { "name": "Current Month Unit" },
-      "next_month_code": { "name": "Next Month Code" },
-      "next_month_estimate_mj": { "name": "Next Month Estimate" },
-      "next_month_estimate_unit": { "name": "Next Month Unit" }
+      "balance": { "name": "Latest Bill Balance" },
+      "bill_amount": { "name": "Latest Bill Amount" },
+      "bill_due_date": { "name": "Bill Due Date" }
     },
-    "binary_sensor": {
-      "current_month_usage_is_estimate": { "name": "Current Month Usage Is Estimated" },
-      "next_month_usage_is_estimate": { "name": "Next Month Usage Is Estimated" },
-      "overdue_bill": { "name": "Overdue Bill" }
+    "button": {
+      "force_refresh": { "name": "Force Refresh" }
     }
   }
 }
