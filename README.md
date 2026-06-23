@@ -10,8 +10,8 @@ A Home Assistant custom integration for monitoring your [Hong Kong Towngas](http
 
 ## Features ⭐
 
-- 🔥 Monthly gas consumption in MJ and meter units (度數)
-- 📊 Cumulative meter reading (煤氣錶讀數)
+- 🔥 Monthly gas consumption in MJ and meter units
+- 📊 Cumulative meter reading
 - 💰 Estimated tariff based on actual usage and current fuel rate
 - 👥 Supports multiple Towngas accounts
 - 📊 Compatible with the Home Assistant Energy Dashboard
@@ -44,7 +44,7 @@ Or manually add `https://github.com/vin-w/hass-towngas-hk` as a Custom Repositor
 
 ## Authentication & Data Refresh 🔐
 
-Towngas requires **OTP (One-Time Password) verification** for every login. This is a security measure by Towngas — there is no way to bypass it.
+Towngas requires **OTP (One-Time Password) verification** for every login. This is a security measure by Towngas.
 
 ### How data refresh works
 
@@ -207,4 +207,4 @@ This is a free-time, unofficial project. If you find it useful, you can buy me a
 
 ## Disclaimer ⚠️
 
-This project is an independent, unofficial integration and is not affiliated with The Hong Kong and China Gas Company Limited.
+This software is provided "as is" without warranty of any kind. This is an independent, unofficial integration and is not affiliated with The Hong Kong and China Gas Company Limited. Use this integration at your own risk. The authors are not responsible for any issues arising from its use.
