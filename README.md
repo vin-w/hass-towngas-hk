@@ -10,7 +10,7 @@ A Home Assistant custom integration for monitoring your [Hong Kong Towngas](http
 ![Card example](docs/images/towngas-card.png)
 
 <!-- TODO: capture new screenshot -->
-![Notification example](docs/images/notification_en.jpeg)
+![Notification example](docs/images/notification_en.png)
 
 ## Features ⭐
 
