@@ -6,11 +6,7 @@ English | [繁體中文](./README_zh-Hant.md)
 
 A Home Assistant custom integration for monitoring your [Hong Kong Towngas](https://eservice.towngas.com) gas consumption and billing via the eService portal.
 
-<!-- TODO: capture new screenshot -->
 ![Card example](docs/images/towngas-card.png)
-
-<!-- TODO: capture new screenshot -->
-![Notification example](docs/images/notification_en.png)
 
 ## Features ⭐
 
@@ -20,6 +16,8 @@ A Home Assistant custom integration for monitoring your [Hong Kong Towngas](http
 - 👥 Supports multiple Towngas accounts
 - 📊 Compatible with the Home Assistant Energy Dashboard
 - 🧩 Setup via UI (no YAML required)
+- 🔄 Auto-refresh with smart caching (monthly billing cycle)
+- 🔔 Bill overdue alerts via automation blueprint
 
 ## Installation
 
@@ -38,7 +36,46 @@ Or manually add `https://github.com/vin-w/hass-towngas-hk` as a Custom Repositor
 1. **Settings → Devices & Services → Add Integration**
 2. Search **Hong Kong Towngas**
 3. Enter your Towngas eService username and password
-4. Select your account (if multiple accounts exist).
+4. ☐ **Save password for auto-refresh** — tick this if you want automatic data updates without re-authentication
+5. You'll receive a **6-digit OTP code** via email — enter it to verify your identity
+6. Select your account (if multiple accounts exist)
+
+---
+
+## Authentication & Data Refresh 🔐
+
+Towngas requires **OTP (One-Time Password) verification** for every login. This is a security measure by Towngas — there is no way to bypass it.
+
+### How data refresh works
+
+| Scenario | What happens |
+|----------|-------------|
+| **Saved password** | Coordinator auto-logins on restart. Data refreshes automatically every 30 days (aligned with monthly billing cycle). |
+| **No saved password** | Cached data is shown until the 30-day refresh interval. After that, you must re-authenticate. |
+
+### When you need to re-authenticate
+
+- **Session expired** — HA shows a "Re-authenticate" notification in Settings → Integrations
+- **Force Refresh** — click the Force Refresh button on the device to manually trigger fresh data
+- **After 30 days** — automatic refresh requires valid credentials
+
+### Re-authentication flow
+
+1. Click **Re-authenticate** in the repair notification
+2. Enter your password (pre-filled if saved)
+3. ☐ Tick **Save password for auto-refresh** if you want automatic updates
+4. Enter the **6-digit OTP code** sent to your email
+5. Done — fresh data loaded
+
+### Without saved password
+
+If you chose not to save your password during setup:
+- Sensors show **cached data** from the last successful fetch
+- After 30 days, cached data is still displayed but no new data is fetched
+- Click **Force Refresh** → enter password → enter OTP → fresh data loaded
+- You can enable "Save password" during re-authentication to avoid this in the future
+
+---
 
 ## Sensors 🔍
 
@@ -46,20 +83,27 @@ Each configured Towngas account is added as a **device** (named `Towngas HK Acco
 
 | Entity ID | Unit | Description |
 |-----------|------|-------------|
-| `sensor.towngas_hk_{account}_consumption` | MJ | Monthly gas consumption (最新本月用量) |
-| `sensor.towngas_hk_{account}_consumption_units` | Units | Monthly consumption in meter units (本月度數) |
-| `sensor.towngas_hk_{account}_meter_reading` | Units | Cumulative meter reading (煤氣錶讀數) |
+| `sensor.towngas_hk_{account}_consumption` | MJ | Monthly gas consumption |
+| `sensor.towngas_hk_{account}_consumption_units` | Units | Monthly consumption in meter units |
+| `sensor.towngas_hk_{account}_meter_reading` | Units | Cumulative meter reading |
 | `sensor.towngas_hk_{account}_reading_type` | — | How reading was obtained: Remote / Actual / Estimate |
 | `sensor.towngas_hk_{account}_reading_date` | Date | When the latest reading was taken |
-| `sensor.towngas_hk_{account}_latest_reading_text` | — | Pre-formatted latest reading info (when available) |
+| `sensor.towngas_hk_{account}_latest_reading_text` | — | Pre-formatted latest reading info |
 | `sensor.towngas_hk_{account}_tariff_estimate` | HKD | Estimated bill based on latest consumption |
 | `sensor.towngas_hk_{account}_account_no` | — | Towngas account number |
-| `sensor.towngas_hk_{account}_balance` | HKD | Current account balance |
-| `sensor.towngas_hk_{account}_bill_amount` | HKD | Latest bill amount due |
+| `sensor.towngas_hk_{account}_balance` | HKD | Latest bill balance (overdue if > $0) |
+| `sensor.towngas_hk_{account}_bill_amount` | HKD | Latest bill amount |
 | `sensor.towngas_hk_{account}_bill_due_date` | Date | Bill payment due date |
 
-### Attributes on `consumption` sensor
+### Button entity
 
+| Entity ID | Description |
+|-----------|-------------|
+| `button.towngas_hk_{account}_force_refresh` | Force a fresh data fetch (clears cache and re-authenticates) |
+
+### Sensor attributes
+
+**consumption** sensor:
 | Attribute | Description |
 |-----------|-------------|
 | `reading_type` | Remote / Actual / Estimate |
@@ -69,8 +113,7 @@ Each configured Towngas account is added as a **device** (named `Towngas HK Acco
 | `has_prediction` | Whether Towngas shows a prediction forecast |
 | `latest_reading_text` | Pre-formatted text from API |
 
-### Attributes on `tariff_estimate` sensor
-
+**tariff_estimate** sensor:
 | Attribute | Description |
 |-----------|-------------|
 | `consumption_mj` | MJ used for calculation |
@@ -78,8 +121,7 @@ Each configured Towngas account is added as a **device** (named `Towngas HK Acco
 | `tariff_source` | Official tariff page URL |
 | `tariff_effective_date` | When rates were last updated |
 
-### Attributes on `balance` sensor
-
+**balance** sensor:
 | Attribute | Description |
 |-----------|-------------|
 | `updated_date` | Date balance was last updated |
@@ -87,33 +129,40 @@ Each configured Towngas account is added as a **device** (named `Towngas HK Acco
 | `ibill` | Whether iBill (e-statement) is enrolled |
 | `account_status` | Account status (`A` = Active) |
 
+---
+
+## Tariff & Billing 💰
+
+### How tariff estimation works
+
+The estimated tariff is calculated using:
+1. **Tiered gas charges** — per-MJ pricing based on consumption brackets
+2. **Fuel cost adjustment** — variable rate (default: 4.52 ¢/MJ, adjustable via helper)
+3. **Monthly maintenance charge** — HK$10
+4. **Monthly initial charge** — HK$20 (only if gas charge < $20)
+
+Source: [Towngas Tariff](https://www.towngas.com/en/Household/Customer-Services/Tariff)
+
 ### Fuel adjustment helper
 
-An `input_number` helper named `Towngas <account> Fuel Adjust Rate` is created
-when the integration is set up. It defaults to **4.52 ¢/MJ** and can be edited
-via **Settings → Devices & Services → Helpers**. The tariff sensor reads this
-value to compute charges; if the helper is missing the default rate is used.
+The integration uses a fuel adjustment rate (default: **4.52 ¢/MJ**) to estimate bills. This rate changes monthly. You can adjust it via **Settings → Devices & Services → Helpers** — look for `Towngas <account> Fuel Adjust Rate`.
 
-## Usage and Meter Units Explanation
+### Usage and Meter Units
 
-- **Usage (MJ)** refers to the gas thermal energy consumption shown at each meter reading, measured in megajoules (MJ)—the actual billed consumption value.
-- **Meter Units** are the traditional meter-style display calculated as every 48 MJ per unit, which is Towngas's standard on their website and paper bills.
+- **Usage (MJ)** — gas thermal energy consumption, measured in megajoules. This is the actual billed value.
+- **Meter Units** — traditional meter display, where 1 unit = 48 MJ.
 
-The conversion is: `units × 48 = MJ`
+Conversion: `units × 48 = MJ`
 
-## Billing Cycle Explanation
+### Billing cycle
 
-The monthly usage sensor represents the **most recently completed meter reading cycle**. Towngas typically reads meters at the beginning of each month. The integration uses `historyList` from the API which always has the latest data (including manual reads before chartBarList updates).
+The monthly usage sensor represents the **most recently completed meter reading cycle**. Towngas typically reads meters at the beginning of each month.
 
-**Official resources:**
-- Tariff rates: https://www.towngas.com/en/Household/Customer-Services/Tariff
-- How to read your gas bill: https://www.towngas.com/media/getmedia/2f4237d6-bd4c-4f13-9b7c-50b009183468/how-to-read-bill_chi.pdf
+---
 
-## Dashboard example 🖥️
+## Dashboard Examples 🖥️
 
-<!-- TODO: capture new screenshot -->
-
-You can add a simple Towngas card stack to any dashboard:
+### Lovelace card
 
 ```yaml
 type: vertical-stack
@@ -130,43 +179,42 @@ cards:
       - entity: sensor.towngas_hk_{account}_consumption
       - entity: sensor.towngas_hk_{account}_consumption_units
       - entity: sensor.towngas_hk_{account}_meter_reading
-      - entity: sensor.towngas_hk_{account}_reading_type
-      - entity: sensor.towngas_hk_{account}_reading_date
       - entity: sensor.towngas_hk_{account}_tariff_estimate
+      - entity: sensor.towngas_hk_{account}_balance
+      - entity: sensor.towngas_hk_{account}_bill_amount
+      - entity: sensor.towngas_hk_{account}_bill_due_date
+      - entity: button.towngas_hk_{account}_force_refresh
 ```
 
-## Energy Dashboard ⚡
+### Energy Dashboard
 
 Go to **Settings → Dashboards → Energy** and add `sensor.towngas_hk_{account}_consumption` (in MJ) under **Gas consumption**.
 
-<!-- TODO: capture new screenshot -->
-![Towngas Energy Dashboard example](docs/images/gas_consumption.png)
+---
 
 ## Automation Blueprint 🔁
 
-A convenient automation blueprint is included to alert you when your
-Towngas bill becomes overdue. You can import it directly using the
-button below or by using the URL:
+A blueprint is included to alert you when your Towngas bill balance exceeds $0 (bill overdue).
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fvin-w%2Fhass-towngas-hk%2Fblob%2Fmaster%2Fblueprints%2Foverdue_bill_alert_en.yaml)
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fvin-w%2Fhass-towngas-hk%2Fblob%2Fmaster%2Fblueprints%2Foverdue_bill_alert_en.yaml)
 
-[https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_en.yaml](https://github.com/vin-w/hass-towngas-hk/blob/master/blueprints/overdue_bill_alert_en.yaml)
+### Setup
 
-Once imported, create an automation from the blueprint and configure the
-inputs:
+1. Import the blueprint from the link above
+2. Create an automation from the blueprint
+3. Configure:
+   - **Balance Sensor** — select `sensor.towngas_hk_{account}_balance`
+   - **Notification Service** — choose your notify service (e.g. `notify.mobile_app_yourphone`)
+4. The automation fires when balance goes above $0
 
-1. **Overdue Bill Sensor** – select `binary_sensor.overdue_bill` for your
-   Towngas account.
-2. **Notification Service** – choose a notify service (e.g.
-   `notify.mobile_app_yourphone`).
-
-The built automation will fire when the sensor turns **on**, sending a
-title/message to the chosen notify target.
+---
 
 ## Requirements 📦
 
 - Towngas eService account at https://eservice.towngas.com
-- Home Assistant 2025.1.0 or newer
+- Home Assistant 2026.1.0 or newer
+
+---
 
 ## Support the integration 🤝
 
@@ -176,9 +224,9 @@ If you run into any problems or have ideas for improvements, feel free to open a
 
 ### Other support
 
-This is a free‑time, unofficial project. If you find it useful, you can buy me a coffee to show your appreciation:
+This is a free-time, unofficial project. If you find it useful, you can buy me a coffee to show your appreciation:
 
-[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/vin_w)
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/vin_w)
 
 ---
 
