@@ -3,15 +3,16 @@
     "step": {
       "user": {
         "title": "Hong Kong Towngas",
-        "description": "Enter your Towngas eService login credentials.",
+        "description": "Enter your Towngas eService login credentials.\n\n{error}",
         "data": {
           "username": "Username (Login ID)",
-          "password": "Password"
+          "password": "Password",
+          "save_password": "Save password for auto-refresh"
         }
       },
       "otp": {
         "title": "Verify Your Identity",
-        "description": "A 6-digit verification code has been sent to your registered email address. Please enter it below.",
+        "description": "A 6-digit verification code has been sent to {email}.\n\n{error}",
         "data": {
           "otp_code": "Verification Code"
         }
@@ -28,23 +29,24 @@
         "description": "Your Towngas credentials have expired. Please re-authenticate.",
         "data": {}
       },
-      "reauth_form": {
+      "reauth_confirm": {
         "title": "Re-authenticate Towngas Account",
-        "description": "Your stored credentials are invalid. Please enter your Towngas eService login credentials.",
+        "description": "Your session has expired. Please enter your password to re-authenticate.\n\n{error}",
         "data": {
-          "username": "Username (Login ID)",
-          "password": "Password"
+          "password": "Password",
+          "save_password": "Save password for auto-refresh"
         }
       },
       "reauth_otp": {
         "title": "Re-authenticate with OTP",
-        "description": "A 6-digit verification code has been sent to your registered email address. Please enter it below.",
+        "description": "A 6-digit verification code has been sent to {email}.\n\n{error}",
         "data": {
           "otp_code": "Verification Code"
         }
       }
     },
     "error": {
+      "api_error": "Error from Towngas server.",
       "cannot_connect": "Failed to connect to Towngas eService.",
       "invalid_auth": "Invalid username or password.",
       "cannot_get_token": "Could not retrieve security token from Towngas.",
@@ -65,12 +67,15 @@
       "meter_reading": { "name": "Meter Reading" },
       "reading_type": { "name": "Reading Type" },
       "reading_date": { "name": "Reading Date" },
-      "latest_reading_text": { "name": "Latest Meter Reading" },
+      "latest_reading_text": { "name": "Latest Text" },
       "tariff_estimate": { "name": "Estimated Tariff" },
       "account_no": { "name": "Account Number" },
-      "balance": { "name": "Current Balance" },
-      "bill_amount": { "name": "Bill Amount Due" },
+      "balance": { "name": "Latest Bill Balance" },
+      "bill_amount": { "name": "Latest Bill Amount" },
       "bill_due_date": { "name": "Bill Due Date" }
+    },
+    "button": {
+      "force_refresh": { "name": "Force Refresh" }
     }
   }
 }

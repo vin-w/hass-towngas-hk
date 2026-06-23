@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import aiohttp
@@ -14,7 +15,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     ACCOUNT_API,
+    AUTH_PAGE,
     CONF_ACCOUNT_NO,
+    CONF_CSRF_TOKEN,
     DEFAULT_TIMEOUT,
     DOMAIN,
     GENERATE_OTP_API,
@@ -25,7 +28,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-from .coordinator import extract_csrf_token as _extract_csrf_token  # noqa: E402
+from .coordinator import COMMON_HEADERS, extract_csrf_token as _extract_csrf_token  # noqa: E402
 
 _TIMEOUT = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
 
@@ -35,7 +38,39 @@ _TIMEOUT = aiohttp.ClientTimeout(total=DEFAULT_TIMEOUT)
 # ---------------------------------------------------------------------------
 
 async def _get_csrf_from_page(session: aiohttp.ClientSession) -> str:
-    """GET the login page and extract the CSRF token."""
+    """GET the login page and extract the CSRF token.
+
+    Two-step process matching browser behavior:
+    1. GET login page → sets cookies
+    2. GET /Common/GetCSRFToken → fresh CSRF via API
+    """
+    # Step 1: load the page (sets Incapsula/antiforgery cookies)
+    async with session.get(
+        LOGIN_PAGE,
+        headers={
+            "user-agent": USER_AGENT,
+            "accept": "text/html,application/xhtml+xml,*/*",
+        },
+        timeout=_TIMEOUT,
+    ) as resp:
+        resp.raise_for_status()
+
+    # Step 2: get fresh CSRF token from API (matches browser behavior)
+    async with session.get(
+        f"https://eservice.towngas.com/Common/GetCSRFToken",
+        headers={
+            **COMMON_HEADERS,
+            "accept": "application/json, text/javascript, */*; q=0.01",
+        },
+        timeout=_TIMEOUT,
+    ) as resp:
+        resp.raise_for_status()
+        body = await resp.json(content_type=None)
+        token = body.get("csrfToken")
+        if token:
+            return token
+
+    # Fallback: extract from HTML
     async with session.get(
         LOGIN_PAGE,
         headers={
@@ -68,12 +103,8 @@ async def _login_credentials(
     async with session.post(
         LOGIN_API,
         headers={
-            "user-agent": USER_AGENT,
-            "accept": "application/json, text/javascript, */*; q=0.01",
+            **COMMON_HEADERS,
             "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "x-requested-with": "XMLHttpRequest",
-            "origin": "https://eservice.towngas.com",
-            "referer": LOGIN_PAGE,
             "RequestVerificationToken": csrf_token,
         },
         data={
@@ -99,12 +130,9 @@ async def _send_otp(
     async with session.post(
         GENERATE_OTP_API,
         headers={
-            "user-agent": USER_AGENT,
-            "accept": "application/json, text/javascript, */*; q=0.01",
+            **COMMON_HEADERS,
             "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "x-requested-with": "XMLHttpRequest",
-            "origin": "https://eservice.towngas.com",
-            "referer": f"{LOGIN_PAGE}",
+            "referer": f"{AUTH_PAGE}?code={guid}",
             "RequestVerificationToken": csrf_token,
         },
         data={
@@ -136,12 +164,9 @@ async def _verify_otp(
     async with session.post(
         LOGIN_API,
         headers={
-            "user-agent": USER_AGENT,
-            "accept": "application/json, text/javascript, */*; q=0.01",
+            **COMMON_HEADERS,
             "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "x-requested-with": "XMLHttpRequest",
-            "origin": "https://eservice.towngas.com",
-            "referer": f"{LOGIN_PAGE}",
+            "referer": f"{AUTH_PAGE}?code={guid}",
             "RequestVerificationToken": csrf_token,
         },
         data={
@@ -170,9 +195,7 @@ async def _get_accounts(
     async with session.post(
         ACCOUNT_API,
         headers={
-            "user-agent": USER_AGENT,
-            "accept": "application/json, text/javascript, */*; q=0.01",
-            "x-requested-with": "XMLHttpRequest",
+            **COMMON_HEADERS,
             "RequestVerificationToken": csrf_token,
         },
         timeout=_TIMEOUT,
@@ -198,6 +221,10 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # OTP flow state
         self._guid: str = ""
         self._session_token: str = ""
+        # Last API error message for display
+        self._api_error: str = ""
+        # Whether to save password in config entry
+        self._save_password: bool = False
 
     # ------------------------------------------------------------------
     # Initial setup
@@ -213,19 +240,26 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             session = async_get_clientsession(self.hass)
             self._username = user_input[CONF_USERNAME].strip()
             self._password = user_input[CONF_PASSWORD]
+            self._save_password = user_input.get("save_password", False)
 
             try:
                 body = await _login_credentials(session, self._username, self._password)
             except ValueError as err:
-                errors["base"] = str(err)
+                self._api_error = str(err)
+                errors["base"] = "api_error"
             except aiohttp.ClientResponseError:
-                errors["base"] = "cannot_connect"
+                self._api_error = "Failed to connect to Towngas eService"
+                errors["base"] = "api_error"
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Unexpected error during Towngas login")
-                errors["base"] = "unknown"
+                self._api_error = "Unexpected error. Check Home Assistant logs."
+                errors["base"] = "api_error"
 
             if not errors:
-                if body.get("email"):
+                if body.get("message"):
+                    self._api_error = body["message"]
+                    errors["base"] = "api_error"
+                elif body.get("email"):
                     # Direct login success
                     self._csrf_token = body.get("_csrf_token", "")
                     new_csrf = body.get("csrfToken")
@@ -233,6 +267,7 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         self._csrf_token = new_csrf
                     self._accounts = await _get_accounts(session, self._csrf_token)
                     if len(self._accounts) == 1:
+                        await self._async_set_unique_and_abort_if_configured(self._accounts[0])
                         return self._create_entry(self._accounts[0])
                     return await self.async_step_account()
 
@@ -240,7 +275,18 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     # OTP required
                     self._guid = body["guid"]
                     self._session_token = body.get("sessionToken", "")
-                    self._csrf_token = body.get("_csrf_token", "")
+                    # Get FRESH CSRF token after login (matches browser behavior)
+                    try:
+                        fresh_resp = await session.get(
+                            "https://eservice.towngas.com/Common/GetCSRFToken",
+                            headers={**COMMON_HEADERS, "accept": "application/json"},
+                            timeout=_TIMEOUT,
+                        )
+                        fresh_resp.raise_for_status()
+                        fresh_body = await fresh_resp.json(content_type=None)
+                        self._csrf_token = fresh_body.get("csrfToken", self._csrf_token)
+                    except Exception:  # noqa: BLE001
+                        pass  # fallback to existing csrf_token
                     try:
                         await _send_otp(session, self._guid, self._csrf_token)
                     except ValueError as err:
@@ -254,9 +300,11 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_USERNAME): str,
                     vol.Required(CONF_PASSWORD): str,
+                    vol.Optional("save_password", default=False): bool,
                 }
             ),
             errors=errors,
+            description_placeholders={"error": self._api_error},
         )
 
     async def async_step_otp(
@@ -278,21 +326,25 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._csrf_token = new_csrf
                 self._accounts = await _get_accounts(session, new_csrf)
                 if len(self._accounts) == 1:
+                    await self._async_set_unique_and_abort_if_configured(self._accounts[0])
                     return self._create_entry(self._accounts[0])
                 return await self.async_step_account()
             except ValueError as err:
-                errors["base"] = str(err)
+                self._api_error = str(err)
+                errors["base"] = "api_error"
             except aiohttp.ClientResponseError:
-                errors["base"] = "cannot_connect"
+                self._api_error = "Failed to connect to Towngas eService"
+                errors["base"] = "api_error"
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Unexpected error during OTP verification")
-                errors["base"] = "unknown"
+                self._api_error = "Unexpected error. Check Home Assistant logs."
+                errors["base"] = "api_error"
 
         return self.async_show_form(
             step_id="otp",
             data_schema=vol.Schema({vol.Required("otp_code"): str}),
             errors=errors,
-            description_placeholders={"email": self._username},
+            description_placeholders={"email": self._username, "error": self._api_error},
         )
 
     async def async_step_account(
@@ -300,7 +352,9 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Step 3: choose account number (only if multiple accounts exist)."""
         if user_input is not None:
-            return self._create_entry(user_input[CONF_ACCOUNT_NO])
+            account_no = user_input[CONF_ACCOUNT_NO]
+            await self._async_set_unique_and_abort_if_configured(account_no)
+            return self._create_entry(account_no)
 
         return self.async_show_form(
             step_id="account",
@@ -309,122 +363,115 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _create_entry(self, account_no: str) -> FlowResult:
         """Create the config entry."""
+        data = {
+            CONF_USERNAME: self._username,
+            CONF_ACCOUNT_NO: account_no,
+            CONF_CSRF_TOKEN: self._csrf_token,
+        }
+        if self._save_password:
+            data[CONF_PASSWORD] = self._password
         return self.async_create_entry(
             title=f"Towngas HK {account_no}",
-            data={
-                CONF_USERNAME: self._username,
-                CONF_PASSWORD: self._password,
-                CONF_ACCOUNT_NO: account_no,
-            },
+            data=data,
         )
+
+    async def _async_set_unique_and_abort_if_configured(self, account_no: str) -> bool:
+        """Set unique ID and abort if already configured. Returns True if aborted."""
+        await self.async_set_unique_id(f"towngas_hk_{account_no}")
+        self._abort_if_unique_id_configured()
+        return False
 
     # ------------------------------------------------------------------
     # Re-authentication
     # ------------------------------------------------------------------
 
     async def async_step_reauth(
-        self, entry_data: dict[str, Any] | None = None
+        self, entry_data: Mapping[str, Any]
     ) -> FlowResult:
-        """Handle re-authentication. Auto-submit stored credentials."""
-        if entry_data is None:
-            entry = self._get_reauth_entry()
-            entry_data = entry.data
+        """Handle re-authentication. Show password form."""
+        entry = self._get_reauth_entry()
+        await self.async_set_unique_id(entry.unique_id)
+        self._username = entry.data.get(CONF_USERNAME, "")
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({
+                vol.Required(CONF_PASSWORD, default=entry.data.get(CONF_PASSWORD, "")): str,
+            }),
+            description_placeholders={"email": self._username},
+        )
 
-        session = async_get_clientsession(self.hass)
-        username = entry_data[CONF_USERNAME]
-        password = entry_data[CONF_PASSWORD]
-
-        try:
-            body = await _login_credentials(session, username, password)
-        except (ValueError, aiohttp.ClientResponseError, Exception):  # noqa: BLE001
-            _LOGGER.debug("Reauth: stored credentials failed, showing form")
-            return await self.async_step_reauth_form(entry_data)
-
-        if body.get("email"):
-            new_csrf = body.get("csrfToken", body.get("_csrf_token", ""))
-            return self.async_update_reload_and_abort(
-                self._get_reauth_entry(),
-                data_updates={CONF_USERNAME: username, CONF_PASSWORD: password},
-            )
-
-        if body.get("guid"):
-            self._guid = body["guid"]
-            self._session_token = body.get("sessionToken", "")
-            self._csrf_token = body.get("_csrf_token", "")
-            try:
-                await _send_otp(session, self._guid, self._csrf_token)
-            except ValueError:
-                pass  # will show error on OTP form
-            return await self.async_step_reauth_otp()
-
-        return await self.async_step_reauth_form(entry_data)
-
-    async def async_step_reauth_form(
-        self,
-        entry_data: dict[str, Any] | None = None,
-        user_input: dict[str, Any] | None = None,
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Re-auth: show username + password form (when stored creds fail)."""
+        """Handle re-authentication password submission."""
         errors: dict[str, str] = {}
+        entry = self._get_reauth_entry()
 
         if user_input is not None:
+            _LOGGER.debug("Reauth confirm submitted")
             session = async_get_clientsession(self.hass)
-            self._username = user_input[CONF_USERNAME].strip()
+            self._username = entry.data.get(CONF_USERNAME, "")
             self._password = user_input[CONF_PASSWORD]
+            self._save_password = user_input.get("save_password", False)
 
             try:
                 body = await _login_credentials(session, self._username, self._password)
             except ValueError as err:
-                errors["base"] = str(err)
+                self._api_error = str(err)
+                errors["base"] = "api_error"
             except aiohttp.ClientResponseError:
-                errors["base"] = "cannot_connect"
+                self._api_error = "Failed to connect to Towngas eService"
+                errors["base"] = "api_error"
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Unexpected error during Towngas re-auth")
-                errors["base"] = "unknown"
+                self._api_error = "Unexpected error. Check Home Assistant logs."
+                errors["base"] = "api_error"
 
             if not errors:
-                if body.get("email"):
-                    self.hass.config_entries.async_update_entry(
-                        self._get_reauth_entry(),
-                        data={
-                            **self._get_reauth_entry().data,
-                            CONF_USERNAME: self._username,
-                            CONF_PASSWORD: self._password,
-                        },
-                    )
-                    await self.hass.config_entries.async_reload(
-                        self._get_reauth_entry().entry_id
-                    )
-                    return self.async_abort(reason="reauth_successful")
-
-                if body.get("guid"):
+                _LOGGER.debug("Reauth: login response keys=%s", list(body.keys()))
+                if body.get("message"):
+                    _LOGGER.debug("Reauth: login failed message=%s", body["message"])
+                    self._api_error = body["message"]
+                    errors["base"] = "api_error"
+                elif body.get("email"):
+                    # Direct login success — still need OTP since it's always enabled
+                    pass
+                elif body.get("guid"):
+                    # OTP required (expected since OTP is always enabled)
                     self._guid = body["guid"]
                     self._session_token = body.get("sessionToken", "")
-                    self._csrf_token = body.get("_csrf_token", "")
+                    # Get FRESH CSRF token after login
+                    try:
+                        fresh_resp = await session.get(
+                            "https://eservice.towngas.com/Common/GetCSRFToken",
+                            headers={**COMMON_HEADERS, "accept": "application/json"},
+                            timeout=_TIMEOUT,
+                        )
+                        fresh_resp.raise_for_status()
+                        fresh_body = await fresh_resp.json(content_type=None)
+                        self._csrf_token = fresh_body.get("csrfToken", self._csrf_token)
+                    except Exception:  # noqa: BLE001
+                        pass
                     try:
                         await _send_otp(session, self._guid, self._csrf_token)
                     except ValueError as err:
-                        errors["base"] = str(err)
+                        self._api_error = str(err)
+                        errors["base"] = "api_error"
                     if not errors:
-                        return await self.async_step_reauth_otp()
-
-        # Pre-fill from stored credentials if available
-        defaults = {}
-        if entry_data:
-            defaults = {
-                vol.Optional(CONF_USERNAME, default=entry_data.get(CONF_USERNAME, "")): str,
-                vol.Optional(CONF_PASSWORD, default=entry_data.get(CONF_PASSWORD, "")): str,
-            }
-        else:
-            defaults = {
-                vol.Required(CONF_USERNAME): str,
-                vol.Required(CONF_PASSWORD): str,
-            }
+                        return self.async_show_form(
+                            step_id="reauth_otp",
+                            data_schema=vol.Schema({vol.Required("otp_code"): str}),
+                            description_placeholders={"email": self._username, "error": ""},
+                        )
 
         return self.async_show_form(
-            step_id="reauth_form",
-            data_schema=vol.Schema(defaults),
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({
+                vol.Required(CONF_PASSWORD, default=entry.data.get(CONF_PASSWORD, "")): str,
+                vol.Optional("save_password", default=CONF_PASSWORD in entry.data): bool,
+            }),
             errors=errors,
+            description_placeholders={"email": self._username, "error": self._api_error},
         )
 
     async def async_step_reauth_otp(
@@ -443,21 +490,32 @@ class TownGasConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     user_input["otp_code"],
                     self._csrf_token,
                 )
-                return self.async_update_reload_and_abort(
-                    self._get_reauth_entry(),
-                    data_updates={},
+                entry = self._get_reauth_entry()
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    data={
+                        **entry.data,
+                        CONF_USERNAME: self._username,
+                        CONF_PASSWORD: self._password,
+                        CONF_CSRF_TOKEN: new_csrf,
+                    },
                 )
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
             except ValueError as err:
-                errors["base"] = str(err)
+                self._api_error = str(err)
+                errors["base"] = "api_error"
             except aiohttp.ClientResponseError:
-                errors["base"] = "cannot_connect"
+                self._api_error = "Failed to connect to Towngas eService"
+                errors["base"] = "api_error"
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Unexpected error during reauth OTP verification")
-                errors["base"] = "unknown"
+                self._api_error = "Unexpected error. Check Home Assistant logs."
+                errors["base"] = "api_error"
 
         return self.async_show_form(
             step_id="reauth_otp",
             data_schema=vol.Schema({vol.Required("otp_code"): str}),
             errors=errors,
-            description_placeholders={"email": self._username},
+            description_placeholders={"email": self._username, "error": self._api_error},
         )

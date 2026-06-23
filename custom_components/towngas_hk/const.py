@@ -6,9 +6,12 @@ CONF_ACCOUNT_NO = "account_no"
 CONF_CSRF_TOKEN = "csrf_token"
 CONF_BILLING_DATE = "billing_date"
 CONF_NEXT_REFRESH = "next_refresh"
+CONF_LAST_REFRESH = "last_refresh"
+CONF_CACHED_DATA = "cached_data"
 
 BASE_URL = "https://eservice.towngas.com"
 LOGIN_PAGE = f"{BASE_URL}/en/Home/Index"
+AUTH_PAGE = f"{BASE_URL}/en/billingUsage/Authentication"
 LOGIN_API = f"{BASE_URL}/EAccount/Login/SignIn"
 GENERATE_OTP_API = f"{BASE_URL}/EAccount/Login/GenerateVerifyCode"
 ACCOUNT_API = f"{BASE_URL}/Common/GetHostedTGAccountAsync"
@@ -22,9 +25,10 @@ USER_AGENT = (
     "Chrome/144.0.0.0 Safari/537.36"
 )
 
-DEFAULT_TIMEOUT = 30
-# Check every 24 hours; smart refresh skips if now < next_refresh
-SCAN_INTERVAL_HOURS = 24
+DEFAULT_TIMEOUT = 10
+# Refresh interval — 1 month (30 days). Meter readings are monthly.
+# For testing, change to 5 (minutes).
+SCAN_INTERVAL_MINUTES = 60 * 24 * 30  # 30 days
 
 # Gas meter conversion factor
 # Source: https://www.towngas.com/en/Household/Customer-Services/Tariff

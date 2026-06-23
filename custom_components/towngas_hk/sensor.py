@@ -21,7 +21,6 @@ from .const import (
     FUEL_RATE_ENTITY,
     MAINTENANCE_FEE,
     TARIFF_TIERS,
-    UNITS_TO_MJ,
 )
 from .coordinator import TownGasCoordinator, TownGasData
 
@@ -87,7 +86,7 @@ class TownGasConsumptionMj(TownGasBaseSensor):
     _attr_translation_key = "consumption"
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "MJ"
-    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_state_class = SensorStateClass.TOTAL
     _attr_icon = "mdi:fire"
     _entity_id_suffix = "consumption"
 
@@ -116,6 +115,7 @@ class TownGasConsumptionUnits(TownGasBaseSensor):
     """
 
     _attr_translation_key = "consumption_units"
+    _attr_native_unit_of_measurement = "units"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:counter"
     _entity_id_suffix = "consumption_units"
@@ -133,7 +133,7 @@ class TownGasMeterReading(TownGasBaseSensor):
 
     _attr_translation_key = "meter_reading"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
-    _attr_icon = "mdi:gas-meter"
+    _attr_icon = "mdi:meter-gas"
     _entity_id_suffix = "meter_reading"
 
     @property

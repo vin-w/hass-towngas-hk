@@ -3,15 +3,16 @@
     "step": {
       "user": {
         "title": "香港中華煤氣",
-        "description": "請輸入您的中華煤氣 eService 登入憑證。",
+        "description": "請輸入您的中華煤氣 eService 登入憑證。\n\n{error}",
         "data": {
           "username": "使用者名稱 (登入 ID)",
-          "password": "密碼"
+          "password": "密碼",
+          "save_password": "儲存密碼以自動重新整理"
         }
       },
       "otp": {
         "title": "驗證您的身份",
-        "description": "一個6位數驗證碼已發送至您的註冊電郵地址，請在下方輸入。",
+        "description": "一個6位數驗證碼已發送至 {email}，請在下方輸入。\n\n{error}",
         "data": {
           "otp_code": "驗證碼"
         }
@@ -28,23 +29,24 @@
         "description": "您的中華煤氣登入資料已到期，請重新驗證。",
         "data": {}
       },
-      "reauth_form": {
+      "reauth_confirm": {
         "title": "重新驗證中華煤氣帳戶",
-        "description": "您儲存的登入資料無效，請輸入您的中華煤氣 eService 登入憑證。",
+        "description": "您的連線逾時，請輸入密碼以重新驗證。\n\n{error}",
         "data": {
-          "username": "使用者名稱 (登入 ID)",
-          "password": "密碼"
+          "password": "密碼",
+          "save_password": "儲存密碼以自動重新整理"
         }
       },
       "reauth_otp": {
         "title": "使用驗證碼重新驗證",
-        "description": "一個6位數驗證碼已發送至您的註冊電郵地址，請在下方輸入。",
+        "description": "一個6位數驗證碼已發送至 {email}，請在下方輸入。\n\n{error}",
         "data": {
           "otp_code": "驗證碼"
         }
       }
     },
     "error": {
+      "api_error": "中華煤氣伺服器錯誤。",
       "cannot_connect": "無法連線至中華煤氣 eService。",
       "invalid_auth": "無效的使用者名稱或密碼。",
       "cannot_get_token": "無法從中華煤氣取得安全權杖。",
@@ -65,12 +67,15 @@
       "meter_reading": { "name": "煤氣錶讀數" },
       "reading_type": { "name": "讀數類型" },
       "reading_date": { "name": "讀數日期" },
-      "latest_reading_text": { "name": "最新錶讀數" },
+      "latest_reading_text": { "name": "最新文字" },
       "tariff_estimate": { "name": "估計煤氣費" },
       "account_no": { "name": "帳戶號碼" },
-      "balance": { "name": "帳戶結餘" },
-      "bill_amount": { "name": "最近一期賬單金額" },
+      "balance": { "name": "最新賬單結餘" },
+      "bill_amount": { "name": "最新賬單金額" },
       "bill_due_date": { "name": "賬單到期日" }
+    },
+    "button": {
+      "force_refresh": { "name": "強制重新整理" }
     }
   }
 }
