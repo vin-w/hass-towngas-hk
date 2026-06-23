@@ -165,38 +165,6 @@
 
 ---
 
-## 儀表板範例 🖥️
-
-### Lovelace 卡片
-
-```yaml
-type: vertical-stack
-cards:
-  - type: history-graph
-    title: Towngas Usage (Monthly)
-    entities:
-      - entity: sensor.towngas_hk_{account}_consumption
-        name: Consumption (MJ)
-    hours_to_show: 720
-  - type: entities
-    state_color: true
-    entities:
-      - entity: sensor.towngas_hk_{account}_consumption
-      - entity: sensor.towngas_hk_{account}_consumption_units
-      - entity: sensor.towngas_hk_{account}_meter_reading
-      - entity: sensor.towngas_hk_{account}_tariff_estimate
-      - entity: sensor.towngas_hk_{account}_balance
-      - entity: sensor.towngas_hk_{account}_bill_amount
-      - entity: sensor.towngas_hk_{account}_bill_due_date
-      - entity: button.towngas_hk_{account}_force_refresh
-```
-
-### 能源儀表板
-
-前往**設定 → 儀表板 → 能源**，在**煤氣用量**下新增 `sensor.towngas_hk_{account}_consumption`（單位 MJ）。
-
----
-
 ## 自動化藍圖 🔁
 
 藍圖可用於在帳戶餘額超過 $0（賬單逾期）時發送提醒。

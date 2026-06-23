@@ -165,38 +165,6 @@ The monthly usage sensor represents the **most recently completed meter reading 
 
 ---
 
-## Dashboard Examples 🖥️
-
-### Lovelace card
-
-```yaml
-type: vertical-stack
-cards:
-  - type: history-graph
-    title: Towngas Usage (Monthly)
-    entities:
-      - entity: sensor.towngas_hk_{account}_consumption
-        name: Consumption (MJ)
-    hours_to_show: 720
-  - type: entities
-    state_color: true
-    entities:
-      - entity: sensor.towngas_hk_{account}_consumption
-      - entity: sensor.towngas_hk_{account}_consumption_units
-      - entity: sensor.towngas_hk_{account}_meter_reading
-      - entity: sensor.towngas_hk_{account}_tariff_estimate
-      - entity: sensor.towngas_hk_{account}_balance
-      - entity: sensor.towngas_hk_{account}_bill_amount
-      - entity: sensor.towngas_hk_{account}_bill_due_date
-      - entity: button.towngas_hk_{account}_force_refresh
-```
-
-### Energy Dashboard
-
-Go to **Settings → Dashboards → Energy** and add `sensor.towngas_hk_{account}_consumption` (in MJ) under **Gas consumption**.
-
----
-
 ## Automation Blueprint 🔁
 
 A blueprint is included to alert you when your Towngas bill balance exceeds $0 (bill overdue).
