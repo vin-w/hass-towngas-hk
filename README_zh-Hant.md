@@ -187,7 +187,7 @@
 ## 需求 📦
 
 - 中華煤氣 eService 帳戶 https://eservice.towngas.com
-- Home Assistant 2026.1.0 或更新版本
+- Home Assistant 2026.3.0 或更新版本
 
 ---
 
