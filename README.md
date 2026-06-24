@@ -187,7 +187,7 @@ A blueprint is included to alert you when your Towngas bill balance exceeds $0 (
 ## Requirements 📦
 
 - Towngas eService account at https://eservice.towngas.com
-- Home Assistant 2026.1.0 or newer
+- Home Assistant 2026.3.0 or newer
 
 ---
 
